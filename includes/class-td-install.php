@@ -36,6 +36,7 @@ class TD_Install {
 
 		// Register CPT before flushing rewrite rules.
 		TD_Post_Type::register();
+		TD_Criteria::register();
 		flush_rewrite_rules();
 	}
 
@@ -111,6 +112,7 @@ class TD_Install {
 		$appt_history   = TD_DB::appointment_history();
 		$audit_log      = TD_DB::audit_log();
 		$nonces         = TD_DB::nonces();
+		$ratings        = TD_DB::ratings();
 
 		$sql = array();
 
@@ -201,6 +203,21 @@ class TD_Install {
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY nonce (nonce)
+		) {$charset_collate};";
+
+		$sql[] = "CREATE TABLE {$ratings} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			appointment_id BIGINT UNSIGNED NOT NULL,
+			listing_id BIGINT UNSIGNED NOT NULL,
+			rater_user_id BIGINT UNSIGNED NOT NULL,
+			ratee_user_id BIGINT UNSIGNED NOT NULL,
+			rating TINYINT UNSIGNED NOT NULL,
+			criteria_scores LONGTEXT NULL,
+			comment TEXT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY appointment_rater (appointment_id, rater_user_id),
+			KEY ratee_user_id (ratee_user_id)
 		) {$charset_collate};";
 
 		foreach ( $sql as $statement ) {

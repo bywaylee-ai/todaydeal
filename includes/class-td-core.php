@@ -21,6 +21,7 @@ class TD_Core {
 		TD_Install::maybe_upgrade();
 
 		add_action( 'init', array( 'TD_Post_Type', 'register' ) );
+		add_action( 'init', array( 'TD_Criteria', 'register' ) );
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 		add_filter( 'rest_pre_serve_request', array( $this, 'apply_cors' ), 10, 4 );
 		add_action( 'admin_notices', array( 'TD_Admin', 'maybe_requirements_notice' ) );
@@ -28,6 +29,7 @@ class TD_Core {
 		TD_Cron::init();
 		TD_Admin::init();
 		TD_Admin_Category_Fields::init();
+		TD_Admin_Criteria::init();
 		TD_Admin_Listing_Editor::init();
 		TD_Frontend_Form::init();
 	}

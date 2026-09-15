@@ -37,6 +37,7 @@ class TD_REST_Categories_Controller {
 					'slug'         => $term->slug,
 					'description'  => $term->description,
 					'extra_fields' => TD_Category_Fields::get_fields_for_term( $term->term_id ),
+					'criteria'     => TD_Criteria::for_category( $term->term_id ),
 				);
 				if ( $with_counts ) {
 					$item['count_sell'] = null;
