@@ -22,6 +22,7 @@ class TD_Core {
 
 		add_action( 'init', array( 'TD_Post_Type', 'register' ) );
 		add_action( 'init', array( 'TD_Criteria', 'register' ) );
+		add_action( 'init', array( 'TD_Install', 'maybe_flush_rewrite_rules' ), 20 );
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 		add_filter( 'rest_pre_serve_request', array( $this, 'apply_cors' ), 10, 4 );
 		add_action( 'admin_notices', array( 'TD_Admin', 'maybe_requirements_notice' ) );
@@ -32,6 +33,7 @@ class TD_Core {
 		TD_Admin_Criteria::init();
 		TD_Admin_Listing_Editor::init();
 		TD_Frontend_Form::init();
+		TD_Frontend_Views::init();
 	}
 
 	public function register_routes() {

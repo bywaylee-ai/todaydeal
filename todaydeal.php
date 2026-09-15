@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'TODAYDEAL_VERSION', '0.1.0' );
-define( 'TODAYDEAL_SCHEMA_VERSION', 3 );
+define( 'TODAYDEAL_SCHEMA_VERSION', 4 );
 define( 'TODAYDEAL_PLUGIN_FILE', __FILE__ );
 define( 'TODAYDEAL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TODAYDEAL_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -32,6 +32,7 @@ require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-auth.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-users.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-taxonomy-adapter.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-post-type.php';
+require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-frontend-views.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-media.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-category-fields.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-criteria.php';

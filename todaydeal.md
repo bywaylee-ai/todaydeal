@@ -180,7 +180,14 @@ REST API 계약(엔드포인트·오류코드·응답 포맷)은 원 문서와 �
 | 소유자 | `post_author` 및 `_todaydeal_owner_user_id` |
 | 메타 접두사 | `_todaydeal_` |
 
-포스트타입은 프런트 단일 페이지나 아카이브를 생성하지 않는다. (구현 시 확장: 관리자 목록 화면에 더해 등록·수정용 메타박스 화면도 제공한다 — 기본정보/위치·약속/미디어/카테고리별 추가 필드/상태 정보. 저장 시에는 REST API(15장)와 동일한 `TD_Listings` 검증 로직을 거치므로 유형별 필드 규칙·상태 전이 규칙이 어긋나지 않는다.)
+(구현 시 확장: 관리자 목록 화면에 더해 등록·수정용 메타박스 화면도 제공한다 — 기본정보/위치·약속/미디어/카테고리별 추가 필드/상태 정보. 저장 시에는 REST API(15장)와 동일한 `TD_Listings` 검증 로직을 거치므로 유형별 필드 규칙·상태 전이 규칙이 어긋나지 않는다.)
+
+**공개 전환 (구현 확장, 28장 개정과 연동)**: 원래 "프런트 단일 페이지나 아카이브를 생성하지 않는다"는 원칙은 사용자 요청으로 폐기되었다. `todaydeal_deal`은 `public => true`로 등록되며 다음 규칙을 따른다.
+
+- `publicly_queryable`, `has_archive`, `rewrite`를 모두 활성화해 `/listings/`(아카이브)와 `/listings/{slug}`(단일)를 제공한다.
+- 노출 상태는 `open`, `reserved`, `completed`, `expired`이며 `draft`, `hidden`, `deleted`(trash)는 프런트에서 절대 노출되지 않는다. `hidden`도 WordPress 레벨에서는 `post_status = publish`이므로(9.3), `publish`라는 사실만으로는 노출 여부를 결정할 수 없다 — 그래서 `pre_get_posts`가 프런트 메인 쿼리(아카이브·단일 판별 포함)에 `_todaydeal_filter_key` 상태 조건을 강제로 주입해 차단한다. 즉 소유자가 숨긴 글은 URL을 직접 알아도 404를 반환한다.
+- 화면은 플러그인이 `template_include`로 자체 템플릿을 주입해 렌더링하고, 그 안에서 현재 테마의 `get_header()`/`get_footer()`만 사용한다 — 기본 전제 2번 "테마와 무관하게 동작"은 유지된다.
+- 단일 페이지는 REST 응답과 동일한 정규화 필드(가격, 위치, 상태 라벨, 카테고리별 추가 필드, 판매자 공개 프로필)를 사람이 보는 화면으로 보여줄 뿐이며, 표시되는 데이터의 출처(검증·직렬화 로직)는 15장 REST API와 동일하다.
 
 소유권은 `post_author`와 `_todaydeal_owner_user_id`에 이중 저장하되, 권한 검증은 항상 `_todaydeal_owner_user_id`를 기준으로 한다. 관리자 조작이나 마이그레이션 과정에서 `post_author`가 변경될 수 있기 때문이다.
 
@@ -1254,7 +1261,8 @@ WordPress 기본 `wp_postmeta`에는 `post_id`와 `meta_key(191)` 인덱스만 �
 
 ## 28. 제외 범위
 
-- WordPress 테마 및 공개 쇼핑몰 화면 제작
+**개정**: "WordPress 테마 및 공개 쇼핑몰 화면 제작" 항목은 구현 과정에서 사용자 요청으로 제외 범위에서 해제되었다. `todaydeal_deal`은 이제 `public => true`로 등록되어 거래글 단일 페이지(`/listings/{slug}`)와 아카이브(`/listings/`)를 제공한다. 단, 테마 종속을 피하기 위해 플러그인이 자체 템플릿(`templates/single-todaydeal-deal.php`, `templates/archive-todaydeal-deal.php`)을 `template_include`로 주입하며, 현재 테마의 `get_header()`/`get_footer()`만 사용한다. `hidden`·`draft`·`deleted` 상태 거래글은 `pre_get_posts`로 프런트 메인 쿼리에서 원천 차단되어 URL을 알아도 404를 반환한다(9.1, 9.3, 20.2절 참고). 상세 규칙은 9.1절 "공개 전환" 항목을 따른다.
+
 - WooCommerce 상품·주문·재고·장바구니·결제 기능 사용
 - 결제대행사 연동과 배송
 - 외부 번역 서비스 자동 번역

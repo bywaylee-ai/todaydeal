@@ -13,6 +13,10 @@ class TD_Listings {
 	const STATUSES     = array( 'draft', 'open', 'reserved', 'completed', 'hidden', 'expired', 'deleted' );
 	// Statuses that count toward the category/registration-limit "active" bucket.
 	const ACTIVE_STATUSES = array( 'open', 'reserved' );
+	// Statuses shown on the public single/archive front-end views (spec 9.1
+	// "공개 전환"). `draft`, `hidden` and `deleted` are never reachable there,
+	// even by direct URL, regardless of their underlying WP post_status.
+	const PUBLIC_VISIBLE_STATUSES = array( 'open', 'reserved', 'completed', 'expired' );
 
 	const CURRENCIES        = array( 'VND', 'USD', 'KRW' );
 	const DEFAULT_CURRENCY  = 'VND';

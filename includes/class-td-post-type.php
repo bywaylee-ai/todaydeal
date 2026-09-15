@@ -42,16 +42,16 @@ class TD_Post_Type {
 			self::POST_TYPE,
 			array(
 				'label'               => 'TodayDeal 거래글',
-				// `public` is true so other plugins that gate on it (e.g. a
-				// generic "attach to any public post type" post-type picker)
-				// recognize this as a normal post type. Every flag that
-				// actually controls front-end exposure is still pinned off
-				// below, so nothing becomes reachable on the front end -
-				// see the note further down.
+				// Full public conversion (spec 9.1/28, user-requested): real
+				// single pages + archive. Visibility of hidden/draft/deleted
+				// listings is enforced separately by TD_Frontend_Views'
+				// pre_get_posts guard, since `hidden` is stored as
+				// post_status=publish + a meta flag (spec 9.3) - public=>true
+				// alone would otherwise leak it.
 				'public'              => true,
-				'publicly_queryable'  => false,
-				'show_in_nav_menus'   => false,
-				'show_in_admin_bar'   => false,
+				'publicly_queryable'  => true,
+				'show_in_nav_menus'   => true,
+				'show_in_admin_bar'   => true,
 				'show_ui'             => true,
 				'show_in_menu'        => true,
 				'show_in_rest'        => false,
@@ -59,8 +59,15 @@ class TD_Post_Type {
 				'capability_type'     => array( 'todaydeal_deal', 'todaydeal_deals' ),
 				'map_meta_cap'        => true,
 				'hierarchical'        => false,
-				'has_archive'         => false,
-				'rewrite'             => false,
+				'has_archive'         => 'listings',
+				'rewrite'             => array( 'slug' => 'listings', 'with_front' => false ),
+				// Stays excluded from WP's generic multi-post-type search:
+				// that query mixes post types under one meta_query, which
+				// can't cleanly exclude hidden/draft listings without also
+				// mis-filtering unrelated post types in the same results.
+				// The dedicated archive (own pre_get_posts guard) and the
+				// REST API's own search param are the supported ways to
+				// browse listings.
 				'exclude_from_search' => true,
 			)
 		);

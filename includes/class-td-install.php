@@ -52,6 +52,24 @@ class TD_Install {
 		self::create_tables();
 		TD_Capabilities::register_on_activation();
 		TD_DB::set_schema_version( TODAYDEAL_SCHEMA_VERSION );
+
+		// Rewrite rules depend on post types that haven't registered yet at
+		// this point in the request (that happens on 'init'), so defer the
+		// actual flush to after registration - see maybe_flush_rewrite_rules().
+		update_option( 'todaydeal_needs_rewrite_flush', 1 );
+	}
+
+	/**
+	 * Hooked to 'init' at a priority after TD_Post_Type/TD_Criteria register,
+	 * so a schema-triggered rewrite change (e.g. the listings archive/single
+	 * slugs) takes effect without a manual Settings > Permalinks resave.
+	 */
+	public static function maybe_flush_rewrite_rules() {
+		if ( ! get_option( 'todaydeal_needs_rewrite_flush' ) ) {
+			return;
+		}
+		flush_rewrite_rules();
+		delete_option( 'todaydeal_needs_rewrite_flush' );
 	}
 
 	public static function deactivate() {
