@@ -8,23 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Not get_header()/get_footer(): those only work reliably on classic
-// themes with header.php/footer.php. Building the document directly with
-// wp_head()/wp_body_open()/wp_footer() works the same on every theme,
-// classic or block-based (spec 기본 전제 #2 "테마와 무관하게 동작").
-?>
-<!doctype html>
-<html <?php language_attributes(); ?>>
-<head>
-<meta charset="<?php bloginfo( 'charset' ); ?>">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?php echo esc_html( get_the_title() . ' - ' . get_bloginfo( 'name' ) ); ?></title>
-<?php wp_head(); ?>
-</head>
-<body <?php body_class( 'todaydeal-single' ); ?>>
-<?php wp_body_open(); ?>
+get_header();
 
-<?php while ( have_posts() ) :
+while ( have_posts() ) :
 	the_post();
 	$listing = TD_Listings::to_response( get_the_ID() );
 	$owner   = TD_Users::public_profile( $listing['owner_user_id'] );
@@ -111,6 +97,4 @@ if ( ! defined( 'ABSPATH' ) ) {
 endwhile;
 ?>
 
-<?php wp_footer(); ?>
-</body>
-</html>
+<?php get_footer(); ?>

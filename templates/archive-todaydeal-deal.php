@@ -8,20 +8,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Not get_header()/get_footer() - see the note in single-todaydeal-deal.php.
+get_header();
+
 $current_type = sanitize_key( $_GET['type'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter link, no state change.
 $archive_url  = get_post_type_archive_link( TD_Post_Type::POST_TYPE );
 ?>
-<!doctype html>
-<html <?php language_attributes(); ?>>
-<head>
-<meta charset="<?php bloginfo( 'charset' ); ?>">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?php echo esc_html( post_type_archive_title( '', false ) . ' - ' . get_bloginfo( 'name' ) ); ?></title>
-<?php wp_head(); ?>
-</head>
-<body <?php body_class( 'todaydeal-archive' ); ?>>
-<?php wp_body_open(); ?>
 <style>
 	.td-archive{max-width:1080px;margin:0 auto;padding:24px 16px}
 	.td-archive .td-filters{margin-bottom:20px}
@@ -72,6 +63,5 @@ $archive_url  = get_post_type_archive_link( TD_Post_Type::POST_TYPE );
 		<p class="td-empty">등록된 거래글이 없습니다.</p>
 	<?php endif; ?>
 </div>
-<?php wp_footer(); ?>
-</body>
-</html>
+<?php
+get_footer();
