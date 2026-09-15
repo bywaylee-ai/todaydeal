@@ -42,7 +42,16 @@ class TD_Post_Type {
 			self::POST_TYPE,
 			array(
 				'label'               => 'TodayDeal 거래글',
-				'public'              => false,
+				// `public` is true so other plugins that gate on it (e.g. a
+				// generic "attach to any public post type" post-type picker)
+				// recognize this as a normal post type. Every flag that
+				// actually controls front-end exposure is still pinned off
+				// below, so nothing becomes reachable on the front end -
+				// see the note further down.
+				'public'              => true,
+				'publicly_queryable'  => false,
+				'show_in_nav_menus'   => false,
+				'show_in_admin_bar'   => false,
 				'show_ui'             => true,
 				'show_in_menu'        => true,
 				'show_in_rest'        => false,
