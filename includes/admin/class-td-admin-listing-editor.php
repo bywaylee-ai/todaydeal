@@ -67,6 +67,7 @@ class TD_Admin_Listing_Editor {
 			.td-field-row{margin-bottom:12px}
 			.td-field-row label{display:block;font-weight:600;margin-bottom:4px}
 			.td-field-row input[type=text],.td-field-row input[type=number],.td-field-row input[type=datetime-local],.td-field-row select{width:100%;max-width:400px}
+			.td-field-row input.td-price-input{width:150px;max-width:150px}
 			.td-only-sell.is-hidden,.td-only-buy.is-hidden{display:none}
 			.td-locked-note{color:#666;font-style:italic}
 		</style>
@@ -93,15 +94,20 @@ class TD_Admin_Listing_Editor {
 		</div>
 
 		<div class="td-field-row">
-			<label>가격 (price_min<span class="td-only-buy">/ price_max</span>)</label>
-			<input type="number" name="todaydeal[price_min]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_PRICE_MIN ) ); ?>" placeholder="price_min" />
-			<span class="td-only-buy"> ~ <input type="number" name="todaydeal[price_max]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_PRICE_MAX ) ); ?>" placeholder="price_max" style="width:150px;display:inline-block" /></span>
+			<label>가격 (price_min<span class="td-only-buy">/ price_max</span>) — 최대 2,000,000,000</label>
+			<input type="text" inputmode="numeric" class="td-price-input" maxlength="13" name="todaydeal[price_min]" value="<?php echo esc_attr( number_format( (int) self::meta( $post->ID, TD_Post_Type::META_PRICE_MIN, 0 ) ) ); ?>" placeholder="price_min" />
+			<span class="td-only-buy"> ~ <input type="text" inputmode="numeric" class="td-price-input" maxlength="13" name="todaydeal[price_max]" value="<?php echo esc_attr( number_format( (int) self::meta( $post->ID, TD_Post_Type::META_PRICE_MAX, 0 ) ) ); ?>" placeholder="price_max" style="display:inline-block" /></span>
 			<p class="description td-only-sell">sell은 price_max가 price_min과 동일하게 서버에서 자동 설정됩니다.</p>
 		</div>
 
 		<div class="td-field-row">
 			<label>통화 (currency)</label>
-			<input type="text" name="todaydeal[currency]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_CURRENCY ) ); ?>" style="max-width:120px" placeholder="VND" />
+			<?php $current_currency = self::meta( $post->ID, TD_Post_Type::META_CURRENCY, TD_Listings::DEFAULT_CURRENCY ); ?>
+			<select name="todaydeal[currency]" style="max-width:120px">
+				<?php foreach ( TD_Listings::CURRENCIES as $currency_code ) : ?>
+					<option value="<?php echo esc_attr( $currency_code ); ?>" <?php selected( $current_currency, $currency_code ); ?>><?php echo esc_html( $currency_code ); ?></option>
+				<?php endforeach; ?>
+			</select>
 			<label style="display:inline-block;font-weight:400;margin-left:16px">
 				<input type="checkbox" name="todaydeal[price_negotiable]" value="1" <?php checked( self::meta( $post->ID, TD_Post_Type::META_NEGOTIABLE ), 1 ); ?> /> 가격 협의 가능
 			</label>
@@ -375,6 +381,16 @@ class TD_Admin_Listing_Editor {
 			}
 			$(document).on('change', 'input[name^="tax_input[product_cat]"]', toggleCatFields);
 			setTimeout(toggleCatFields, 300);
+
+			var MAX_PRICE = 2000000000;
+			function formatPriceInput(el){
+				var digits = el.value.replace(/[^\d]/g, '');
+				if (digits === '') { el.value = ''; return; }
+				var num = Math.min(parseInt(digits, 10), MAX_PRICE);
+				el.value = num.toLocaleString('en-US');
+			}
+			$(document).on('input', '.td-price-input', function(){ formatPriceInput(this); });
+			$('.td-price-input').each(function(){ formatPriceInput(this); });
 
 			var frame;
 			var picker = $('#td-media-picker');

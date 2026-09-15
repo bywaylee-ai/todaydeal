@@ -14,6 +14,31 @@ class TD_Listings {
 	// Statuses that count toward the category/registration-limit "active" bucket.
 	const ACTIVE_STATUSES = array( 'open', 'reserved' );
 
+	const CURRENCIES        = array( 'VND', 'USD', 'KRW' );
+	const DEFAULT_CURRENCY  = 'VND';
+	const MAX_PRICE         = 2000000000; // 20억
+
+	/**
+	 * Strips thousands-separator commas (the UI displays/accepts
+	 * comma-grouped numbers) and enforces integer-only, non-negative,
+	 * <= MAX_PRICE per spec 15.1 ("부동소수점 사용 금지").
+	 *
+	 * @return string|null cleaned digit string, or null if invalid.
+	 */
+	private static function sanitize_price( $raw ) {
+		if ( null === $raw || '' === $raw ) {
+			return '';
+		}
+		$clean = str_replace( ',', '', trim( (string) $raw ) );
+		if ( ! preg_match( '/^\d+$/', $clean ) ) {
+			return null;
+		}
+		if ( (float) $clean > self::MAX_PRICE ) {
+			return null;
+		}
+		return $clean;
+	}
+
 	private static function forbidden_fields_for( $listing_type ) {
 		return 'sell' === $listing_type
 			? array( 'condition_preference', 'search_radius_km' )
@@ -164,6 +189,25 @@ class TD_Listings {
 			}
 		}
 
+		if ( ! empty( $input['currency'] ) && ! in_array( strtoupper( $input['currency'] ), self::CURRENCIES, true ) ) {
+			return TD_Response::error(
+				'VALIDATION_ERROR',
+				sprintf( '통화는 %s 중 하나여야 합니다.', implode( ', ', self::CURRENCIES ) ),
+				array( 'field' => 'currency' )
+			);
+		}
+
+		foreach ( array( 'price_min', 'price_max' ) as $price_field ) {
+			if ( array_key_exists( $price_field, $input ) && '' !== $input[ $price_field ] && null !== $input[ $price_field ]
+				&& null === self::sanitize_price( $input[ $price_field ] ) ) {
+				return TD_Response::error(
+					'VALIDATION_ERROR',
+					sprintf( '%s은(는) 숫자만 입력할 수 있으며 %s 이하여야 합니다.', $price_field, number_format( self::MAX_PRICE ) ),
+					array( 'field' => $price_field )
+				);
+			}
+		}
+
 		$media_ids = array_map( 'intval', (array) ( $input['media_ids'] ?? array() ) );
 
 		if ( 'sell' === $listing_type ) {
@@ -184,7 +228,9 @@ class TD_Listings {
 				return TD_Response::error( 'VALIDATION_ERROR', '이미지는 최대 3장까지 등록할 수 있습니다.', array( 'field' => 'media_ids' ) );
 			}
 			if ( isset( $input['price_min'], $input['price_max'] ) && '' !== $input['price_min'] && '' !== $input['price_max'] ) {
-				if ( (float) $input['price_max'] < (float) $input['price_min'] ) {
+				$min = self::sanitize_price( $input['price_min'] );
+				$max = self::sanitize_price( $input['price_max'] );
+				if ( null !== $min && null !== $max && (int) $max < (int) $min ) {
 					return TD_Response::error( 'VALIDATION_ERROR', 'price_max는 price_min 이상이어야 합니다.', array( 'field' => 'price_max' ) );
 				}
 			}
@@ -194,12 +240,17 @@ class TD_Listings {
 	}
 
 	private static function write_common_fields( $post_id, $listing_type, array $input ) {
-		$price_min = isset( $input['price_min'] ) ? (string) $input['price_min'] : '';
-		$price_max = 'sell' === $listing_type ? $price_min : (string) ( $input['price_max'] ?? '' );
+		$price_min = self::sanitize_price( $input['price_min'] ?? '' ) ?: '';
+		$price_max = 'sell' === $listing_type ? $price_min : ( self::sanitize_price( $input['price_max'] ?? '' ) ?: '' );
+
+		$currency = ! empty( $input['currency'] ) ? strtoupper( sanitize_text_field( $input['currency'] ) ) : self::DEFAULT_CURRENCY;
+		if ( ! in_array( $currency, self::CURRENCIES, true ) ) {
+			$currency = self::DEFAULT_CURRENCY;
+		}
 
 		update_post_meta( $post_id, TD_Post_Type::META_PRICE_MIN, $price_min );
 		update_post_meta( $post_id, TD_Post_Type::META_PRICE_MAX, $price_max );
-		update_post_meta( $post_id, TD_Post_Type::META_CURRENCY, sanitize_text_field( $input['currency'] ?? '' ) );
+		update_post_meta( $post_id, TD_Post_Type::META_CURRENCY, $currency );
 		update_post_meta( $post_id, TD_Post_Type::META_NEGOTIABLE, ! empty( $input['price_negotiable'] ) ? 1 : 0 );
 
 		if ( 'sell' === $listing_type ) {
@@ -696,10 +747,16 @@ class TD_Listings {
 		$current = array(
 			'price_min'            => get_post_meta( $post_id, TD_Post_Type::META_PRICE_MIN, true ),
 			'price_max'            => get_post_meta( $post_id, TD_Post_Type::META_PRICE_MAX, true ),
+			'currency'             => get_post_meta( $post_id, TD_Post_Type::META_CURRENCY, true ),
+			'price_negotiable'     => (bool) get_post_meta( $post_id, TD_Post_Type::META_NEGOTIABLE, true ),
 			'condition'            => get_post_meta( $post_id, TD_Post_Type::META_CONDITION, true ),
 			'condition_preference' => get_post_meta( $post_id, TD_Post_Type::META_CONDITION_PREF, true ),
 			'item_usage_period'    => get_post_meta( $post_id, TD_Post_Type::META_USAGE_PERIOD, true ),
+			'quantity'             => get_post_meta( $post_id, TD_Post_Type::META_QUANTITY, true ),
 			'search_radius_km'     => get_post_meta( $post_id, TD_Post_Type::META_SEARCH_RADIUS, true ),
+			'preferred_place'      => get_post_meta( $post_id, TD_Post_Type::META_PREFERRED_PLACE, true ),
+			'available_time'       => get_post_meta( $post_id, TD_Post_Type::META_AVAILABLE_TIME, true ),
+			'available_languages'  => json_decode( get_post_meta( $post_id, TD_Post_Type::META_AVAILABLE_LANGS, true ) ?: '[]', true ),
 			'expires_at'           => get_post_meta( $post_id, TD_Post_Type::META_EXPIRES_AT, true ),
 			'media_ids'            => json_decode( get_post_meta( $post_id, TD_Post_Type::META_MEDIA_IDS, true ) ?: '[]', true ),
 			'location'             => array(

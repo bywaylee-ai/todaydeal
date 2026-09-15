@@ -62,11 +62,18 @@ class TD_Frontend_Form {
 			<div class="td-row"><label>설명</label><textarea name="description" rows="4"></textarea></div>
 
 			<div class="td-row">
-				<label>가격 (price_min <span class="td-only-buy td-hidden">~ price_max</span>)</label>
-				<input type="number" name="price_min" required />
-				<input type="number" name="price_max" class="td-only-buy td-hidden" placeholder="price_max" />
+				<label>가격 (price_min <span class="td-only-buy td-hidden">~ price_max</span>) — 최대 2,000,000,000</label>
+				<input type="text" inputmode="numeric" class="td-price-input" maxlength="13" name="price_min" required />
+				<input type="text" inputmode="numeric" class="td-price-input td-only-buy td-hidden" maxlength="13" name="price_max" placeholder="price_max" />
 			</div>
-			<div class="td-row"><label>통화</label><input type="text" name="currency" placeholder="VND" style="max-width:120px" /></div>
+			<div class="td-row">
+				<label>통화</label>
+				<select name="currency" style="max-width:120px">
+					<option value="VND" selected>VND</option>
+					<option value="USD">USD</option>
+					<option value="KRW">KRW</option>
+				</select>
+			</div>
 
 			<div class="td-row td-only-sell"><label>물품 상태 (condition)</label><input type="text" name="condition" /></div>
 			<div class="td-row td-only-buy td-hidden"><label>희망 상태 (condition_preference)</label><input type="text" name="condition_preference" /></div>
@@ -155,6 +162,17 @@ class TD_Frontend_Form {
 				});
 			});
 
+			var MAX_PRICE = 2000000000;
+			function formatPriceInput(el){
+				var digits = el.value.replace(/[^\d]/g, '');
+				if (digits === '') { el.value = ''; return; }
+				var num = Math.min(parseInt(digits, 10), MAX_PRICE);
+				el.value = num.toLocaleString('en-US');
+			}
+			form.querySelectorAll('.td-price-input').forEach(function(el){
+				el.addEventListener('input', function(){ formatPriceInput(el); });
+			});
+
 			function showMsg(text, isError){
 				var msg = document.getElementById('td-form-msg');
 				msg.textContent = text;
@@ -194,11 +212,13 @@ class TD_Frontend_Form {
 						else if (el.value !== '') { extraFields[key] = el.value; }
 					});
 
+					var stripCommas = function(v){ return v ? v.replace(/,/g, '') : v; };
+
 					var payload = {
 						listing_type: type,
 						title: fd.get('title'),
 						description: fd.get('description'),
-						price_min: fd.get('price_min') || undefined,
+						price_min: stripCommas(fd.get('price_min')) || undefined,
 						currency: fd.get('currency') || undefined,
 						condition: type === 'sell' ? (fd.get('condition') || undefined) : undefined,
 						condition_preference: type === 'buy' ? (fd.get('condition_preference') || undefined) : undefined,
@@ -216,7 +236,7 @@ class TD_Frontend_Form {
 							search_radius_km: type === 'buy' && fd.get('search_radius_km') ? Number(fd.get('search_radius_km')) : undefined
 						}
 					};
-					if (type === 'buy' && fd.get('price_max')) { payload.price_max = fd.get('price_max'); }
+					if (type === 'buy' && fd.get('price_max')) { payload.price_max = stripCommas(fd.get('price_max')); }
 
 					var res = await fetch(REST_URL + '/listings', {
 						method: 'POST',
