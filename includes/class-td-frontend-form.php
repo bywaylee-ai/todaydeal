@@ -83,6 +83,11 @@ class TD_Frontend_Form {
 
 			<div class="td-row">
 				<label>위치</label>
+				<select id="td-location-preset" style="margin-bottom:6px">
+					<option value="custom" selected>직접입력</option>
+					<option value="nha_trang_smile_jewelry">Nha Trang Smile Jewelry</option>
+				</select>
+				<br/>
 				<input type="text" name="country" placeholder="국가 코드 (VN)" style="max-width:100px;display:inline-block" required />
 				<input type="text" name="city" placeholder="도시" style="max-width:220px;display:inline-block" required />
 				<br/>
@@ -154,6 +159,27 @@ class TD_Frontend_Form {
 			}
 			form.querySelectorAll('input[name=listing_type]').forEach(function(r){ r.addEventListener('change', applyTypeVisibility); });
 			applyTypeVisibility();
+
+			// Address: 172/10 Bạch Đằng, Nha Trang, Khánh Hòa 650000, Việt Nam (coordinates from user-supplied Google Maps link).
+			var LOCATION_PRESETS = {
+				nha_trang_smile_jewelry: { country: 'VN', city: 'Nha Trang', place_name: '172/10 Bạch Đằng', latitude: '12.2391553', longitude: '109.1926092' }
+			};
+			var locationFields = ['country', 'city', 'place_name', 'latitude', 'longitude'];
+			var presetSelect = document.getElementById('td-location-preset');
+			presetSelect.addEventListener('change', function(){
+				var preset = LOCATION_PRESETS[presetSelect.value];
+				locationFields.forEach(function(name){
+					var el = form.querySelector('[name="' + name + '"]');
+					if (!el) return;
+					if (preset) {
+						el.value = preset[name] || '';
+						el.readOnly = true;
+					} else {
+						el.value = '';
+						el.readOnly = false;
+					}
+				});
+			});
 
 			form.querySelectorAll('.td-category-checkbox').forEach(function(cb){
 				cb.addEventListener('change', function(){
