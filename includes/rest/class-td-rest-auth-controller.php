@@ -20,6 +20,12 @@ class TD_REST_Auth_Controller {
 			'permission_callback' => '__return_true',
 		) );
 
+		register_rest_route( self::NS, '/auth/google', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'login_google' ),
+			'permission_callback' => '__return_true',
+		) );
+
 		register_rest_route( self::NS, '/auth/refresh', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'refresh' ),
@@ -68,6 +74,33 @@ class TD_REST_Auth_Controller {
 		}
 
 		$result = TD_Auth::login( $login, $password, $request->get_header( 'X-Device-Id' ) );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return TD_Response::success( $result );
+	}
+
+	/**
+	 * Google sign-in/sign-up. Body: id_token (required), optional
+	 * nickname/country/city/language used only when a new user is created.
+	 */
+	public function login_google( WP_REST_Request $request ) {
+		$limited = TD_Rate_Limiter::check( 'login_google', TD_Rate_Limiter::client_ip(), 20, 3600 );
+		if ( is_wp_error( $limited ) ) {
+			return $limited;
+		}
+
+		$body     = $request->get_json_params();
+		$id_token = (string) ( $body['id_token'] ?? '' );
+
+		if ( '' === $id_token ) {
+			return TD_Response::error( 'VALIDATION_ERROR', 'id_token이 필요합니다.', array( 'field' => 'id_token' ) );
+		}
+
+		$fields = array_intersect_key( (array) $body, array_flip( array( 'nickname', 'country', 'city', 'language' ) ) );
+
+		$result = TD_Social_Auth::login_google( $id_token, $fields, $request->get_header( 'X-Device-Id' ) );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}

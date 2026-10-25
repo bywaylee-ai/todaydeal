@@ -14,15 +14,19 @@ class TD_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
 	}
 
+	/**
+	 * Nested under the `todaydeal_deal` post type's own top-level menu
+	 * (relabeled "TodayDeal" in TD_Post_Type::register()) instead of a
+	 * separate add_menu_page(), per user request to merge the two.
+	 */
 	public static function register_menu() {
-		add_menu_page(
-			'TodayDeal',
-			'TodayDeal',
+		add_submenu_page(
+			'edit.php?post_type=' . TD_Post_Type::POST_TYPE,
+			'TodayDeal Status Info',
+			'Status Info',
 			'manage_options',
 			'todaydeal-status',
-			array( __CLASS__, 'render_status_page' ),
-			'dashicons-store',
-			56
+			array( __CLASS__, 'render_status_page' )
 		);
 	}
 
@@ -65,6 +69,21 @@ class TD_Admin {
 			}
 			echo '</ul>';
 		}
+
+		if ( isset( $_POST['todaydeal_google_maps_api_key'] ) && check_admin_referer( 'todaydeal_save_maps_key' ) ) {
+			$settings                        = get_option( 'todaydeal_settings', array() );
+			$settings['google_maps_api_key'] = sanitize_text_field( wp_unslash( $_POST['todaydeal_google_maps_api_key'] ) );
+			update_option( 'todaydeal_settings', $settings );
+			echo '<div class="notice notice-success"><p>Google Maps API 키를 저장했습니다.</p></div>';
+		}
+
+		echo '<h2>Google Maps API 키</h2><form method="post">';
+		wp_nonce_field( 'todaydeal_save_maps_key' );
+		printf(
+			'<input type="text" name="todaydeal_google_maps_api_key" value="%s" class="regular-text" placeholder="AIza..." /> <button type="submit" class="button button-primary">저장</button>',
+			esc_attr( get_option( 'todaydeal_settings', array() )['google_maps_api_key'] ?? '' )
+		);
+		echo '<p class="description">거래글 등록 폼의 위치 선택 지도에 사용합니다. Google Cloud에서 Maps JavaScript API를 활성화하고, 키의 HTTP 리퍼러를 이 사이트 도메인으로 제한하세요.</p></form>';
 
 		echo '<h2>설정</h2><table class="widefat"><tbody>';
 		foreach ( get_option( 'todaydeal_settings', array() ) as $key => $value ) {

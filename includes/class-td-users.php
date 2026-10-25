@@ -188,6 +188,7 @@ class TD_Users {
 		}
 
 		TD_Auth::logout_all( $user_id );
+		delete_user_meta( $user_id, TD_Social_Auth::META_GOOGLE_SUB );
 
 		$anon_email = 'deleted-' . $user_id . '@todaydeal.invalid';
 		wp_update_user(

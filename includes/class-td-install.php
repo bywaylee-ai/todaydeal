@@ -23,6 +23,8 @@ class TD_Install {
 		'checklist_required_for_completion' => false,
 		'default_language'         => 'ko',
 		'supported_languages'      => array( 'ko', 'en', 'vi' ),
+		'google_client_ids'        => array(),     // OAuth client IDs accepted as ID token audience (web/iOS/Android)
+		'google_maps_api_key'      => '',          // Maps JavaScript API browser key (등록 폼의 위치 선택 지도)
 	);
 
 	public static function activate() {
@@ -74,6 +76,7 @@ class TD_Install {
 
 	public static function deactivate() {
 		wp_clear_scheduled_hook( 'todaydeal_cron_expire_listings' );
+		wp_clear_scheduled_hook( 'todaydeal_cron_auto_draft_listings' );
 		wp_clear_scheduled_hook( 'todaydeal_cron_expire_appointments' );
 		wp_clear_scheduled_hook( 'todaydeal_cron_cleanup_temp_media' );
 		flush_rewrite_rules();

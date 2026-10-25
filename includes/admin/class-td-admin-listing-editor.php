@@ -94,6 +94,11 @@ class TD_Admin_Listing_Editor {
 		</div>
 
 		<div class="td-field-row">
+			<label>상품 고유명 (product_name)</label>
+			<input type="text" name="todaydeal[product_name]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_PRODUCT_NAME ) ); ?>" placeholder="예: iPhone 15 Pro 256GB" />
+		</div>
+
+		<div class="td-field-row">
 			<label>가격 (price_min<span class="td-only-buy">/ price_max</span>) — 최대 2,000,000,000</label>
 			<input type="text" inputmode="numeric" class="td-price-input" maxlength="13" name="todaydeal[price_min]" value="<?php echo esc_attr( number_format( (int) self::meta( $post->ID, TD_Post_Type::META_PRICE_MIN, 0 ) ) ); ?>" placeholder="price_min" />
 			<span class="td-only-buy"> ~ <input type="text" inputmode="numeric" class="td-price-input" maxlength="13" name="todaydeal[price_max]" value="<?php echo esc_attr( number_format( (int) self::meta( $post->ID, TD_Post_Type::META_PRICE_MAX, 0 ) ) ); ?>" placeholder="price_max" style="display:inline-block" /></span>
@@ -133,13 +138,46 @@ class TD_Admin_Listing_Editor {
 
 		<div class="td-field-row">
 			<label>만료 일시 (expires_at) <span class="td-only-buy">— buy는 필수</span></label>
-			<input type="datetime-local" name="todaydeal[expires_at]" value="<?php echo esc_attr( self::to_local_datetime( self::meta( $post->ID, TD_Post_Type::META_EXPIRES_AT ) ) ); ?>" />
+			<?php
+			// 시각은 선호 장소 도시의 표준시로 표기/입력한다(신규 글은 첫 번째 도시).
+			// 만료 일시가 비어 있으면(신규 등록) 기본 1주 뒤로 채운다.
+			$tz            = self::listing_timezone( $post->ID );
+			$expires_local = self::to_local_datetime( self::meta( $post->ID, TD_Post_Type::META_EXPIRES_AT ), $tz['timezone'] );
+			if ( '' === $expires_local ) {
+				$expires_local = wp_date( 'Y-m-d\TH:i', time() + WEEK_IN_SECONDS, $tz['timezone'] );
+			}
+			?>
+			<span class="td-expires-presets">
+				<button type="button" class="button" data-weeks="1">1주</button>
+				<button type="button" class="button" data-weeks="2">2주</button>
+				<button type="button" class="button" data-weeks="4">4주</button>
+			</span>
+			<input type="datetime-local" name="todaydeal[expires_at]" value="<?php echo esc_attr( $expires_local ); ?>" style="display:inline-block;max-width:220px" />
+			<span class="td-tz-label"><?php echo esc_html( $tz['label'] ); ?></span>
+			<?php $on_expire_action = self::meta( $post->ID, TD_Post_Type::META_ON_EXPIRE_ACTION, TD_Listings::DEFAULT_ON_EXPIRE_ACTION ); ?>
+			<select name="todaydeal[on_expire_action]" style="max-width:200px;display:inline-block;margin-left:8px">
+				<option value="expired" <?php selected( $on_expire_action, 'expired' ); ?>>기간만료 표시(expired) 유지</option>
+				<option value="draft" <?php selected( $on_expire_action, 'draft' ); ?>>임시글(draft)로 전환</option>
+				<option value="hidden" <?php selected( $on_expire_action, 'hidden' ); ?>>숨김(hidden)으로 전환</option>
+			</select>
+			<p class="description">만료 일시가 지나면 open 상태의 거래글을 자동으로 위에서 고른 상태로 전환합니다. 기본값(기간만료)은 공개 상태를 유지하며, "임시글/숨김"을 선택하면 완전히 비공개로 전환됩니다. 소유자 또는 매니저만 변경할 수 있습니다.</p>
 		</div>
 
 		<div class="td-field-row">
-			<label>선호 장소 / 가능 시간</label>
-			<input type="text" name="todaydeal[preferred_place]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_PREFERRED_PLACE ) ); ?>" placeholder="preferred_place" style="margin-bottom:6px" />
-			<input type="text" name="todaydeal[available_time]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_AVAILABLE_TIME ) ); ?>" placeholder="available_time" />
+			<label>가능 시간 (available_time)</label>
+			<?php
+			// "HH:MM~HH:MM" 형식으로 저장. 이전의 자유 텍스트 값은 새로 입력하기 전까지 유지된다.
+			$available_time = self::meta( $post->ID, TD_Post_Type::META_AVAILABLE_TIME );
+			$time_range     = TD_Listings::parse_time_range( $available_time );
+			?>
+			<input type="time" name="todaydeal[available_time_from]" value="<?php echo esc_attr( $time_range[0] ?? '' ); ?>" />
+			~
+			<input type="time" name="todaydeal[available_time_to]" value="<?php echo esc_attr( $time_range[1] ?? '' ); ?>" />
+			<span class="td-tz-label"><?php echo esc_html( $tz['label'] ); ?></span>
+			<?php if ( $available_time && ! $time_range ) : ?>
+				<p class="description">기존 값: <?php echo esc_html( $available_time ); ?> — 시간을 입력하면 대체됩니다.</p>
+			<?php endif; ?>
+			<p class="description">선호 장소는 "위치 / 약속" 박스의 도시/거점에서 지정합니다.</p>
 		</div>
 		<?php
 	}
@@ -147,18 +185,20 @@ class TD_Admin_Listing_Editor {
 	public static function render_location( $post ) {
 		?>
 		<div class="td-field-row">
-			<label>국가(country) / 도시(city)</label>
-			<input type="text" name="todaydeal[country]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_COUNTRY ) ); ?>" placeholder="VN" style="max-width:80px" />
-			<input type="text" name="todaydeal[city]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_CITY ) ); ?>" placeholder="Ho Chi Minh City" style="max-width:220px" />
-		</div>
-		<div class="td-field-row">
-			<label>장소명(place_name)</label>
-			<input type="text" name="todaydeal[place_name]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_PLACE_NAME ) ); ?>" />
-		</div>
-		<div class="td-field-row">
-			<label>좌표 (latitude / longitude)</label>
-			<input type="text" name="todaydeal[latitude]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_LAT ) ); ?>" placeholder="10.7769" style="max-width:150px" />
-			<input type="text" name="todaydeal[longitude]" value="<?php echo esc_attr( self::meta( $post->ID, TD_Post_Type::META_LNG ) ); ?>" placeholder="106.7009" style="max-width:150px" />
+			<label>선호 장소 (도시 / 거점)</label>
+			<?php
+			TD_Frontend_Form::render_place_picker(
+				'todaydeal',
+				array(
+					'city'       => self::meta( $post->ID, TD_Post_Type::META_CITY ),
+					'place_name' => self::meta( $post->ID, TD_Post_Type::META_PLACE_NAME ),
+					'map_url'    => self::meta( $post->ID, TD_Post_Type::META_MAP_URL ),
+					'latitude'   => self::meta( $post->ID, TD_Post_Type::META_LAT ),
+					'longitude'  => self::meta( $post->ID, TD_Post_Type::META_LNG ),
+				)
+			);
+			?>
+			<p class="description">거점을 고르면 장소명·구글맵 링크·좌표가 자동으로 채워집니다. 다른 장소는 "별도 지정"을 고르고 구글맵 링크와 좌표를 입력하세요.</p>
 		</div>
 		<div class="td-field-row td-only-buy">
 			<label>희망 거래 반경 km (search_radius_km) — buy 전용</label>
@@ -249,11 +289,16 @@ class TD_Admin_Listing_Editor {
 		}
 	}
 
-	private static function to_local_datetime( $mysql_utc ) {
+	private static function to_local_datetime( $mysql_utc, DateTimeZone $timezone ) {
 		if ( ! $mysql_utc ) {
 			return '';
 		}
-		return mysql2date( 'Y-m-d\TH:i', $mysql_utc, false );
+		return wp_date( 'Y-m-d\TH:i', strtotime( $mysql_utc . ' UTC' ), $timezone );
+	}
+
+	private static function listing_timezone( $post_id ) {
+		$presets = TD_Listings::PLACE_PRESETS;
+		return TD_Listings::city_timezone( self::meta( $post_id, TD_Post_Type::META_CITY, reset( $presets )['city'] ) );
 	}
 
 	/**
@@ -264,15 +309,23 @@ class TD_Admin_Listing_Editor {
 		$raw = wp_unslash( $_POST['todaydeal'] ?? array() );
 
 		$input = array();
-		foreach ( array( 'listing_type', 'status', 'price_min', 'price_max', 'currency', 'condition', 'condition_preference', 'item_usage_period', 'quantity', 'preferred_place', 'available_time' ) as $key ) {
+		foreach ( array( 'listing_type', 'status', 'price_min', 'price_max', 'currency', 'product_name', 'condition', 'condition_preference', 'item_usage_period', 'quantity', 'on_expire_action' ) as $key ) {
 			if ( isset( $raw[ $key ] ) && '' !== $raw[ $key ] ) {
 				$input[ $key ] = $raw[ $key ];
 			}
 		}
 		$input['price_negotiable'] = ! empty( $raw['price_negotiable'] );
 
+		if ( ! empty( $raw['available_time_from'] ) && ! empty( $raw['available_time_to'] ) ) {
+			$input['available_time'] = $raw['available_time_from'] . '~' . $raw['available_time_to'];
+		}
+
+		// 입력값은 선택한 도시의 표준시 기준 벽시계 시각.
 		if ( ! empty( $raw['expires_at'] ) ) {
-			$input['expires_at'] = get_gmt_from_date( str_replace( 'T', ' ', $raw['expires_at'] ), 'Y-m-d\TH:i:s\Z' );
+			$local = date_create_immutable( $raw['expires_at'], TD_Listings::city_timezone( $raw['city'] ?? '' )['timezone'] );
+			if ( $local ) {
+				$input['expires_at'] = $local->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d\TH:i:s\Z' );
+			}
 		}
 
 		$input['location'] = array(
@@ -281,6 +334,7 @@ class TD_Admin_Listing_Editor {
 			'place_name'       => $raw['place_name'] ?? '',
 			'latitude'         => $raw['latitude'] ?? '',
 			'longitude'        => $raw['longitude'] ?? '',
+			'map_url'          => $raw['map_url'] ?? '',
 			'search_radius_km' => $raw['search_radius_km'] ?? '',
 		);
 
@@ -391,6 +445,12 @@ class TD_Admin_Listing_Editor {
 			}
 			$(document).on('input', '.td-price-input', function(){ formatPriceInput(this); });
 			$('.td-price-input').each(function(){ formatPriceInput(this); });
+
+			// 만료 일시 프리셋: 선택한 도시의 표준시 기준 현재 시각에 N주를 더한다.
+			$(document).on('click', '.td-expires-presets button', function(){
+				var tz = document.querySelector('.td-place-picker').tdTimezone();
+				$('input[name="todaydeal[expires_at]"]').val(tdZoned.local(Date.now() + Number($(this).data('weeks')) * 7 * 86400000, tz));
+			});
 
 			var frame;
 			var picker = $('#td-media-picker');

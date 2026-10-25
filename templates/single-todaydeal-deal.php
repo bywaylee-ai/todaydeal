@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-get_header();
+TD_Frontend_Views::header();
 
 while ( have_posts() ) :
 	the_post();
@@ -62,12 +62,14 @@ while ( have_posts() ) :
 
 		<div class="td-section">
 			<h2>거래 정보</h2>
+			<?php if ( $listing['product_name'] ) : ?><div class="td-row"><span>상품 고유명</span><strong><?php echo esc_html( $listing['product_name'] ); ?></strong></div><?php endif; ?>
 			<?php if ( $listing['condition'] ) : ?><div class="td-row"><span>물품 상태</span><strong><?php echo esc_html( $listing['condition'] ); ?></strong></div><?php endif; ?>
 			<?php if ( $listing['condition_preference'] ) : ?><div class="td-row"><span>희망 상태</span><strong><?php echo esc_html( $listing['condition_preference'] ); ?></strong></div><?php endif; ?>
-			<div class="td-row"><span>위치</span><strong><?php echo esc_html( trim( $listing['location']['city'] . ' ' . $listing['location']['place_name'] ) ); ?></strong></div>
+			<div class="td-row"><span>위치</span><strong><?php echo esc_html( trim( $listing['location']['city'] . ' ' . $listing['location']['place_name'] ) ); ?></strong><?php if ( $listing['location']['map_url'] ) : ?> <a href="<?php echo esc_url( $listing['location']['map_url'] ); ?>" target="_blank" rel="noopener">지도 보기</a><?php endif; ?></div>
 			<?php if ( $listing['preferred_place'] ) : ?><div class="td-row"><span>선호 장소</span><strong><?php echo esc_html( $listing['preferred_place'] ); ?></strong></div><?php endif; ?>
-			<?php if ( $listing['available_time'] ) : ?><div class="td-row"><span>가능 시간</span><strong><?php echo esc_html( $listing['available_time'] ); ?></strong></div><?php endif; ?>
-			<?php if ( $listing['expires_at'] ) : ?><div class="td-row"><span>만료일</span><strong><?php echo esc_html( mysql2date( 'Y-m-d', $listing['expires_at'] ) ); ?></strong></div><?php endif; ?>
+			<?php $tz = TD_Listings::city_timezone( $listing['location']['city'] ); ?>
+			<?php if ( $listing['available_time'] ) : ?><div class="td-row"><span>가능 시간</span><strong><?php echo esc_html( $listing['available_time'] . ( TD_Listings::parse_time_range( $listing['available_time'] ) ? ' ' . $tz['label'] : '' ) ); ?></strong></div><?php endif; ?>
+			<?php if ( $listing['expires_at'] ) : ?><div class="td-row"><span>만료일</span><strong><?php echo esc_html( wp_date( 'Y-m-d H:i', strtotime( $listing['expires_at'] . ' UTC' ), $tz['timezone'] ) . ' ' . $tz['label'] ); ?></strong></div><?php endif; ?>
 		</div>
 
 		<?php if ( ! empty( $fields ) ) : ?>
@@ -97,4 +99,4 @@ while ( have_posts() ) :
 endwhile;
 ?>
 
-<?php get_footer(); ?>
+<?php TD_Frontend_Views::footer(); ?>

@@ -59,6 +59,34 @@ class TD_Frontend_Views {
 		$query->set( 'meta_query', $meta_query );
 	}
 
+	/**
+	 * get_header()/get_footer() when the theme has header.php/footer.php;
+	 * otherwise (block themes) the plugin's default ones, which avoids the
+	 * "Theme without header.php is deprecated" notice.
+	 */
+	public static function header() {
+		if ( self::theme_has( 'header.php' ) ) {
+			get_header();
+		} else {
+			require TODAYDEAL_PLUGIN_DIR . 'templates/header.php';
+		}
+	}
+
+	public static function footer() {
+		if ( self::theme_has( 'footer.php' ) ) {
+			get_footer();
+		} else {
+			require TODAYDEAL_PLUGIN_DIR . 'templates/footer.php';
+		}
+	}
+
+	// Not locate_template(): it falls back to wp-includes/theme-compat/, the
+	// very files that trigger the deprecation notice.
+	private static function theme_has( $file ) {
+		return file_exists( get_stylesheet_directory() . '/' . $file )
+			|| file_exists( get_template_directory() . '/' . $file );
+	}
+
 	public static function template_include( $template ) {
 		if ( is_404() ) {
 			return $template;

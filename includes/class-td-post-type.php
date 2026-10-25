@@ -20,11 +20,13 @@ class TD_Post_Type {
 	const META_PLACE_NAME     = '_todaydeal_place_name';
 	const META_LAT            = '_todaydeal_latitude';
 	const META_LNG            = '_todaydeal_longitude';
+	const META_MAP_URL        = '_todaydeal_map_url';
 	const META_SEARCH_RADIUS  = '_todaydeal_search_radius_km';
 	const META_PRICE_MIN      = '_todaydeal_price_min';
 	const META_PRICE_MAX      = '_todaydeal_price_max';
 	const META_CURRENCY       = '_todaydeal_currency';
 	const META_NEGOTIABLE     = '_todaydeal_price_negotiable';
+	const META_PRODUCT_NAME   = '_todaydeal_product_name';
 	const META_CONDITION      = '_todaydeal_condition';
 	const META_CONDITION_PREF = '_todaydeal_condition_preference';
 	const META_USAGE_PERIOD   = '_todaydeal_item_usage_period';
@@ -34,6 +36,7 @@ class TD_Post_Type {
 	const META_AVAILABLE_LANGS = '_todaydeal_available_languages';
 	const META_MEDIA_IDS      = '_todaydeal_media_ids';
 	const META_EXPIRES_AT     = '_todaydeal_expires_at';
+	const META_ON_EXPIRE_ACTION = '_todaydeal_on_expire_action';
 	const META_SOURCE_LANGUAGE = '_todaydeal_source_language';
 	const META_TRANSLATIONS   = '_todaydeal_translations';
 
@@ -42,6 +45,12 @@ class TD_Post_Type {
 			self::POST_TYPE,
 			array(
 				'label'               => 'TodayDeal 거래글',
+				// wp-admin's single top-level menu for the whole plugin
+				// (user-requested merge of the separate "TodayDeal" status
+				// menu into this one - see TD_Admin::register_menu()).
+				'labels'              => array( 'menu_name' => 'TodayDeal' ),
+				'menu_icon'           => 'dashicons-store',
+				'menu_position'       => 56,
 				// Full public conversion (spec 9.1/28, user-requested): real
 				// single pages + archive. Visibility of hidden/draft/deleted
 				// listings is enforced separately by TD_Frontend_Views'

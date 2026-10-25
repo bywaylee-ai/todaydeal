@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-get_header();
+TD_Frontend_Views::header();
 
 $current_type = sanitize_key( $_GET['type'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter link, no state change.
 $archive_url  = get_post_type_archive_link( TD_Post_Type::POST_TYPE );
@@ -64,4 +64,4 @@ $archive_url  = get_post_type_archive_link( TD_Post_Type::POST_TYPE );
 	<?php endif; ?>
 </div>
 <?php
-get_footer();
+TD_Frontend_Views::footer();

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TodayDeal
  * Description: TodayDeal 앱 전용 REST API 플러그인. 거래글(sell/buy), 회원, 인증, 거래 약속을 관리한다.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: TodayDeal
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'TODAYDEAL_VERSION', '0.1.0' );
+define( 'TODAYDEAL_VERSION', '0.2.0' );
 define( 'TODAYDEAL_SCHEMA_VERSION', 4 );
 define( 'TODAYDEAL_PLUGIN_FILE', __FILE__ );
 define( 'TODAYDEAL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
@@ -29,6 +29,7 @@ require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-rate-limiter.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-idempotency.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-app-server-auth.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-auth.php';
+require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-social-auth.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-users.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-taxonomy-adapter.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-post-type.php';

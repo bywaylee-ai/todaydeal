@@ -22,6 +22,78 @@ class TD_Listings {
 	const DEFAULT_CURRENCY  = 'VND';
 	const MAX_PRICE         = 2000000000; // 20억
 
+	// WP-LST-예약취소: `expires_at` 경과 시 `open` 상태 거래글이 자동 전환될
+	// 목표 상태. 커스텀 포스트 "예약 발행"의 반대 개념 - 미래 시각에 발행
+	// 상태를 거둬들인다. 기본값 `expired`는 기존 만료 동작과 완전히 동일하므로
+	// 이 필드를 건드리지 않는 한 하위 호환이 깨지지 않는다.
+	const ON_EXPIRE_ACTIONS      = array( 'expired', 'draft', 'hidden' );
+	const DEFAULT_ON_EXPIRE_ACTION = 'expired';
+
+	/**
+	 * 도시가 속한 국가의 표준시. PLACE_PRESETS에 없는 도시는 사이트 시간대.
+	 *
+	 * @return array{timezone: DateTimeZone, label: string}
+	 */
+	public static function city_timezone( $city ) {
+		foreach ( self::PLACE_PRESETS as $preset ) {
+			foreach ( $preset['aliases'] as $alias ) {
+				if ( 0 === strcasecmp( $alias, (string) $city ) ) {
+					return array( 'timezone' => new DateTimeZone( $preset['timezone'] ), 'label' => $preset['tz_label'] );
+				}
+			}
+		}
+		return array( 'timezone' => wp_timezone(), 'label' => wp_timezone_string() );
+	}
+
+	public static function google_maps_api_key() {
+		return (string) ( self::settings()['google_maps_api_key'] ?? '' );
+	}
+
+	/**
+	 * 가능 시간 "HH:MM~HH:MM" → array(from, to). 형식이 다르면(이전 자유 텍스트) null.
+	 */
+	public static function parse_time_range( $value ) {
+		return preg_match( '/^(\d{2}:\d{2})~(\d{2}:\d{2})$/', (string) $value, $m ) ? array( $m[1], $m[2] ) : null;
+	}
+
+	// 등록 폼(wp-admin/프런트엔드)의 선호 장소 선택지. 도시 순서가 곧 우선순위이며
+	// 첫 도시와 그 첫 거점이 기본 선택값. `aliases`는 기존 거래글의 도시 값 매칭용.
+	// 좌표는 각 구글맵 링크가 가리키는 장소 핀 좌표.
+	const PLACE_PRESETS = array(
+		'nha_trang'   => array(
+			'label'    => 'Nha Trang',
+			'country'  => 'VN',
+			'city'     => 'Nha Trang',
+			'timezone' => 'Asia/Ho_Chi_Minh',
+			'tz_label' => '베트남 표준시 (UTC+7)',
+			'aliases' => array( 'Nha Trang' ),
+			'places'  => array(
+				'smile_jewelry' => array(
+					'place_name' => 'Smile Jewelry',
+					'map_url'    => 'https://maps.app.goo.gl/t9ixy9FXjmfEdkQC8',
+					'latitude'   => '12.2392888',
+					'longitude'  => '109.1926797',
+				),
+			),
+		),
+		'ho_chi_minh' => array(
+			'label'    => 'Ho Chi Minh',
+			'country'  => 'VN',
+			'city'     => 'Ho Chi Minh City',
+			'timezone' => 'Asia/Ho_Chi_Minh',
+			'tz_label' => '베트남 표준시 (UTC+7)',
+			'aliases' => array( 'Ho Chi Minh City', 'Ho Chi Minh', 'HCM' ),
+			'places'  => array(
+				'paris_baguette_sky_garden' => array(
+					'place_name' => '파리바게트 스카이가든점',
+					'map_url'    => 'https://maps.app.goo.gl/9xSNvMR5ccAMQcgT8',
+					'latitude'   => '10.7314296',
+					'longitude'  => '106.7065851',
+				),
+			),
+		),
+	);
+
 	/**
 	 * Strips thousands-separator commas (the UI displays/accepts
 	 * comma-grouped numbers) and enforces integer-only, non-negative,
@@ -201,6 +273,15 @@ class TD_Listings {
 			);
 		}
 
+		if ( array_key_exists( 'on_expire_action', $input ) && '' !== $input['on_expire_action']
+			&& ! in_array( $input['on_expire_action'], self::ON_EXPIRE_ACTIONS, true ) ) {
+			return TD_Response::error(
+				'VALIDATION_ERROR',
+				sprintf( 'on_expire_action은 %s 중 하나여야 합니다.', implode( ', ', self::ON_EXPIRE_ACTIONS ) ),
+				array( 'field' => 'on_expire_action' )
+			);
+		}
+
 		foreach ( array( 'price_min', 'price_max' ) as $price_field ) {
 			if ( array_key_exists( $price_field, $input ) && '' !== $input[ $price_field ] && null !== $input[ $price_field ]
 				&& null === self::sanitize_price( $input[ $price_field ] ) ) {
@@ -256,6 +337,7 @@ class TD_Listings {
 		update_post_meta( $post_id, TD_Post_Type::META_PRICE_MAX, $price_max );
 		update_post_meta( $post_id, TD_Post_Type::META_CURRENCY, $currency );
 		update_post_meta( $post_id, TD_Post_Type::META_NEGOTIABLE, ! empty( $input['price_negotiable'] ) ? 1 : 0 );
+		update_post_meta( $post_id, TD_Post_Type::META_PRODUCT_NAME, sanitize_text_field( $input['product_name'] ?? '' ) );
 
 		if ( 'sell' === $listing_type ) {
 			update_post_meta( $post_id, TD_Post_Type::META_CONDITION, sanitize_text_field( $input['condition'] ?? '' ) );
@@ -275,6 +357,7 @@ class TD_Listings {
 		update_post_meta( $post_id, TD_Post_Type::META_PLACE_NAME, sanitize_text_field( $location['place_name'] ?? '' ) );
 		update_post_meta( $post_id, TD_Post_Type::META_LAT, self::format_coordinate( $location['latitude'] ?? null ) );
 		update_post_meta( $post_id, TD_Post_Type::META_LNG, self::format_coordinate( $location['longitude'] ?? null ) );
+		update_post_meta( $post_id, TD_Post_Type::META_MAP_URL, esc_url_raw( $location['map_url'] ?? '' ) );
 
 		update_post_meta( $post_id, TD_Post_Type::META_PREFERRED_PLACE, sanitize_text_field( $input['preferred_place'] ?? '' ) );
 		update_post_meta( $post_id, TD_Post_Type::META_AVAILABLE_TIME, sanitize_text_field( $input['available_time'] ?? '' ) );
@@ -286,6 +369,11 @@ class TD_Listings {
 			$days = (int) self::settings()['default_listing_ttl_days'];
 			update_post_meta( $post_id, TD_Post_Type::META_EXPIRES_AT, gmdate( 'Y-m-d H:i:s', time() + $days * DAY_IN_SECONDS ) );
 		}
+
+		$on_expire_action = in_array( $input['on_expire_action'] ?? '', self::ON_EXPIRE_ACTIONS, true )
+			? $input['on_expire_action']
+			: self::DEFAULT_ON_EXPIRE_ACTION;
+		update_post_meta( $post_id, TD_Post_Type::META_ON_EXPIRE_ACTION, $on_expire_action );
 	}
 
 	private static function format_coordinate( $value ) {
@@ -402,6 +490,7 @@ class TD_Listings {
 			'price'               => 'sell' === $listing_type ? $price_min : null,
 			'currency'            => get_post_meta( $post_id, TD_Post_Type::META_CURRENCY, true ),
 			'price_negotiable'    => (bool) get_post_meta( $post_id, TD_Post_Type::META_NEGOTIABLE, true ),
+			'product_name'        => get_post_meta( $post_id, TD_Post_Type::META_PRODUCT_NAME, true ) ?: null,
 			'condition'           => get_post_meta( $post_id, TD_Post_Type::META_CONDITION, true ) ?: null,
 			'condition_preference' => get_post_meta( $post_id, TD_Post_Type::META_CONDITION_PREF, true ) ?: null,
 			'item_usage_period'   => get_post_meta( $post_id, TD_Post_Type::META_USAGE_PERIOD, true ) ?: null,
@@ -413,6 +502,7 @@ class TD_Listings {
 				'place_name'  => get_post_meta( $post_id, TD_Post_Type::META_PLACE_NAME, true ),
 				'latitude'    => (float) get_post_meta( $post_id, TD_Post_Type::META_LAT, true ),
 				'longitude'   => (float) get_post_meta( $post_id, TD_Post_Type::META_LNG, true ),
+				'map_url'     => get_post_meta( $post_id, TD_Post_Type::META_MAP_URL, true ) ?: null,
 			),
 			'preferred_place'     => get_post_meta( $post_id, TD_Post_Type::META_PREFERRED_PLACE, true ) ?: null,
 			'available_time'      => get_post_meta( $post_id, TD_Post_Type::META_AVAILABLE_TIME, true ) ?: null,
@@ -422,6 +512,7 @@ class TD_Listings {
 			'status_label'        => TD_Post_Type::status_label( $status, $listing_type ),
 			'type_label'          => TD_Post_Type::type_label( $listing_type ),
 			'expires_at'          => get_post_meta( $post_id, TD_Post_Type::META_EXPIRES_AT, true ) ?: null,
+			'on_expire_action'    => get_post_meta( $post_id, TD_Post_Type::META_ON_EXPIRE_ACTION, true ) ?: self::DEFAULT_ON_EXPIRE_ACTION,
 			'created_at'          => self::to_iso8601( $post->post_date_gmt ),
 			'updated_at'          => self::to_iso8601( $post->post_modified_gmt ),
 			'source_language'     => get_post_meta( $post_id, TD_Post_Type::META_SOURCE_LANGUAGE, true ),
@@ -627,8 +718,9 @@ class TD_Listings {
 
 	const EDITABLE_FIELDS = array(
 		'title', 'description', 'translations', 'category_ids', 'price_min', 'price_max', 'currency',
-		'price_negotiable', 'condition', 'condition_preference', 'item_usage_period', 'quantity',
+		'price_negotiable', 'product_name', 'condition', 'condition_preference', 'item_usage_period', 'quantity',
 		'location', 'preferred_place', 'available_time', 'available_languages', 'media_ids', 'expires_at',
+		'on_expire_action',
 	);
 
 	public static function update( $post_id, $user_id, array $input, $partial = true ) {
@@ -753,6 +845,7 @@ class TD_Listings {
 			'price_max'            => get_post_meta( $post_id, TD_Post_Type::META_PRICE_MAX, true ),
 			'currency'             => get_post_meta( $post_id, TD_Post_Type::META_CURRENCY, true ),
 			'price_negotiable'     => (bool) get_post_meta( $post_id, TD_Post_Type::META_NEGOTIABLE, true ),
+			'product_name'         => get_post_meta( $post_id, TD_Post_Type::META_PRODUCT_NAME, true ),
 			'condition'            => get_post_meta( $post_id, TD_Post_Type::META_CONDITION, true ),
 			'condition_preference' => get_post_meta( $post_id, TD_Post_Type::META_CONDITION_PREF, true ),
 			'item_usage_period'    => get_post_meta( $post_id, TD_Post_Type::META_USAGE_PERIOD, true ),
@@ -762,6 +855,7 @@ class TD_Listings {
 			'available_time'       => get_post_meta( $post_id, TD_Post_Type::META_AVAILABLE_TIME, true ),
 			'available_languages'  => json_decode( get_post_meta( $post_id, TD_Post_Type::META_AVAILABLE_LANGS, true ) ?: '[]', true ),
 			'expires_at'           => get_post_meta( $post_id, TD_Post_Type::META_EXPIRES_AT, true ),
+			'on_expire_action'     => get_post_meta( $post_id, TD_Post_Type::META_ON_EXPIRE_ACTION, true ),
 			'media_ids'            => json_decode( get_post_meta( $post_id, TD_Post_Type::META_MEDIA_IDS, true ) ?: '[]', true ),
 			'location'             => array(
 				'country'    => get_post_meta( $post_id, TD_Post_Type::META_COUNTRY, true ),
@@ -769,6 +863,7 @@ class TD_Listings {
 				'place_name' => get_post_meta( $post_id, TD_Post_Type::META_PLACE_NAME, true ),
 				'latitude'   => get_post_meta( $post_id, TD_Post_Type::META_LAT, true ),
 				'longitude'  => get_post_meta( $post_id, TD_Post_Type::META_LNG, true ),
+				'map_url'    => get_post_meta( $post_id, TD_Post_Type::META_MAP_URL, true ),
 			),
 		);
 
@@ -813,8 +908,14 @@ class TD_Listings {
 			TD_Appointments::cancel_all_active_for_listing( $post_id, 'listing_marked_completed' );
 		}
 
-		if ( in_array( $current_status, array( 'expired', 'completed' ), true ) && 'open' === $new_status ) {
-			// WP-LST-013: re-listing refreshes the expiry window.
+		// WP-LST-013: re-listing refreshes a lapsed expiry window. `draft`/
+		// `hidden` can now also result from run_auto_expire()'s on_expire_action
+		// (not just an owner manually hiding an unrelated listing), so a
+		// stale expires_at from that firing would otherwise re-trigger on the
+		// very next cron tick right after the owner reopens it. A still-future
+		// custom expires_at is left untouched either way.
+		$stored_expires_at = get_post_meta( $post_id, TD_Post_Type::META_EXPIRES_AT, true );
+		if ( 'open' === $new_status && ( '' === $stored_expires_at || $stored_expires_at <= current_time( 'mysql', true ) ) ) {
 			$days = (int) self::settings()['default_listing_ttl_days'];
 			update_post_meta( $post_id, TD_Post_Type::META_EXPIRES_AT, gmdate( 'Y-m-d H:i:s', time() + $days * DAY_IN_SECONDS ) );
 		}
@@ -887,6 +988,9 @@ class TD_Listings {
 	/**
 	 * WP-LST-012: cron-driven auto expiry. `reserved` listings are skipped
 	 * per spec 9.3 rule 5 - they're re-evaluated once the appointment ends.
+	 * The target status defaults to `expired` (공개 유지, 기존 동작과 동일)
+	 * but the owner/매니저 may set `on_expire_action` to `draft`/`hidden` for
+	 * a full un-publish instead - the "예약 발행"의 반대 개념.
 	 */
 	public static function run_auto_expire() {
 		$now = current_time( 'mysql', true );
@@ -906,7 +1010,11 @@ class TD_Listings {
 		);
 
 		foreach ( $query->posts as $post_id ) {
-			self::apply_status( $post_id, 'expired', 'system', null, null );
+			$action = get_post_meta( $post_id, TD_Post_Type::META_ON_EXPIRE_ACTION, true );
+			if ( ! in_array( $action, self::ON_EXPIRE_ACTIONS, true ) ) {
+				$action = self::DEFAULT_ON_EXPIRE_ACTION;
+			}
+			self::apply_status( $post_id, $action, 'system', null, null );
 		}
 	}
 }
