@@ -44,6 +44,11 @@ class TD_Frontend_Form {
 			.td-form .td-msg{margin-top:12px;padding:10px;border-radius:4px}
 			.td-form .td-msg.error{background:#fdecea;color:#611a15}
 			.td-form .td-msg.success{background:#e6f4ea;color:#1e4620}
+			.td-form fieldset{border:0;padding:0;margin:0}
+			.td-form legend{font-weight:600;margin-bottom:4px;padding:0}
+			.td-form :focus-visible{outline:3px solid #1d4ed8;outline-offset:2px}
+			.td-form input,.td-form select,.td-form textarea{border:1px solid #8c929b;border-radius:4px}
+			.td-form .td-help{display:block;color:#5b616b;font-size:.9em;font-weight:400}
 		</style>
 		<?php
 	}
@@ -52,51 +57,51 @@ class TD_Frontend_Form {
 		$categories = TD_Taxonomy_Adapter::is_available() ? TD_Taxonomy_Adapter::get_categories() : array();
 		?>
 		<form class="td-form" id="td-listing-form">
-			<div class="td-row">
-				<label>거래 유형</label>
-				<label><input type="radio" name="listing_type" value="sell" checked /> 팔아요</label>
+			<fieldset class="td-row">
+				<legend>거래 유형</legend>
+				<label style="display:inline-block"><input type="radio" name="listing_type" value="sell" checked /> 팔아요</label>
 				<label style="display:inline-block;margin-left:16px"><input type="radio" name="listing_type" value="buy" /> 구해요</label>
-			</div>
+			</fieldset>
 
-			<div class="td-row"><label>제목</label><input type="text" name="title" required /></div>
-			<div class="td-row"><label>상품 고유명</label><input type="text" name="product_name" placeholder="예: iPhone 15 Pro 256GB" /></div>
-			<div class="td-row"><label>설명</label><textarea name="description" rows="4"></textarea></div>
+			<div class="td-row"><label for="td-f-title">제목 (필수)</label><input type="text" id="td-f-title" name="title" required /></div>
+			<div class="td-row"><label for="td-f-product">상품 고유명</label><input type="text" id="td-f-product" name="product_name" placeholder="예: iPhone 15 Pro 256GB" /></div>
+			<div class="td-row"><label for="td-f-desc">설명</label><textarea id="td-f-desc" name="description" rows="4"></textarea></div>
 
 			<div class="td-row">
-				<label>가격 (price_min <span class="td-only-buy td-hidden">~ price_max</span>) — 최대 2,000,000,000</label>
-				<input type="text" inputmode="numeric" class="td-price-input" maxlength="13" name="price_min" required />
-				<input type="text" inputmode="numeric" class="td-price-input td-only-buy td-hidden" maxlength="13" name="price_max" placeholder="price_max" />
+				<label for="td-f-price">가격 (필수) <span class="td-only-buy td-hidden">— 최소 ~ 최대</span><span class="td-help" id="td-f-price-help">최대 2,000,000,000</span></label>
+				<input type="text" inputmode="numeric" class="td-price-input" maxlength="13" id="td-f-price" name="price_min" aria-describedby="td-f-price-help" required />
+				<input type="text" inputmode="numeric" class="td-price-input td-only-buy td-hidden" maxlength="13" name="price_max" placeholder="최대 가격" aria-label="최대 가격" />
 			</div>
 			<div class="td-row">
-				<label>통화</label>
-				<select name="currency" style="max-width:120px">
+				<label for="td-f-currency">통화</label>
+				<select id="td-f-currency" name="currency" style="max-width:120px">
 					<option value="VND" selected>VND</option>
 					<option value="USD">USD</option>
 					<option value="KRW">KRW</option>
 				</select>
 			</div>
 
-			<div class="td-row td-only-sell"><label>물품 상태 (condition)</label><input type="text" name="condition" /></div>
-			<div class="td-row td-only-buy td-hidden"><label>희망 상태 (condition_preference)</label><input type="text" name="condition_preference" /></div>
-			<div class="td-row td-only-buy td-hidden"><label>수량</label><input type="number" name="quantity" value="1" min="1" /></div>
+			<div class="td-row td-only-sell"><label for="td-f-cond">물품 상태</label><input type="text" id="td-f-cond" name="condition" /></div>
+			<div class="td-row td-only-buy td-hidden"><label for="td-f-condpref">희망 상태</label><input type="text" id="td-f-condpref" name="condition_preference" /></div>
+			<div class="td-row td-only-buy td-hidden"><label for="td-f-qty">수량</label><input type="number" id="td-f-qty" name="quantity" value="1" min="1" /></div>
 
-			<div class="td-row td-only-buy td-hidden"><label>만료 일시 (필수)</label>
-				<span class="td-expires-presets">
+			<div class="td-row td-only-buy td-hidden"><label for="td-f-expires">만료 일시 (필수)</label>
+				<span class="td-expires-presets" role="group" aria-label="만료 일시 빠른 지정">
 					<button type="button" data-weeks="1">1주</button>
 					<button type="button" data-weeks="2">2주</button>
 					<button type="button" data-weeks="4">4주</button>
 				</span>
-				<input type="datetime-local" name="expires_at" style="max-width:240px;display:inline-block" />
+				<input type="datetime-local" id="td-f-expires" name="expires_at" style="max-width:240px;display:inline-block" />
 				<span class="td-tz-label"></span></div>
 
-			<div class="td-row">
-				<label>선호 장소 (도시 / 거점)</label>
+			<fieldset class="td-row">
+				<legend>선호 장소 (도시 / 거점)</legend>
 				<?php self::render_place_picker(); ?>
-			</div>
-			<div class="td-row td-only-buy td-hidden"><label>희망 거래 반경(km)</label><input type="number" name="search_radius_km" /></div>
+			</fieldset>
+			<div class="td-row td-only-buy td-hidden"><label for="td-f-radius">희망 거래 반경(km)</label><input type="number" id="td-f-radius" name="search_radius_km" /></div>
 
-			<div class="td-row">
-				<label>카테고리</label>
+			<fieldset class="td-row">
+				<legend>카테고리</legend>
 				<?php foreach ( $categories as $cat ) : ?>
 					<?php $extra_fields = TD_Category_Fields::get_fields_for_term( $cat->term_id ); ?>
 					<label style="display:inline-block;margin-right:12px">
@@ -125,15 +130,15 @@ class TD_Frontend_Form {
 						</div>
 					<?php endif; ?>
 				<?php endforeach; ?>
-			</div>
+			</fieldset>
 
 			<div class="td-row">
-				<label>이미지 (sell 1~5장, buy 0~3장)</label>
-				<input type="file" name="media" id="td-media-input" accept="image/jpeg,image/png,image/webp" multiple />
+				<label for="td-media-input">이미지 <span class="td-help" id="td-media-help">팔아요 1~5장, 구해요 0~3장 (JPEG·PNG·WebP)</span></label>
+				<input type="file" name="media" id="td-media-input" aria-describedby="td-media-help" accept="image/jpeg,image/png,image/webp" multiple />
 			</div>
 
 			<button type="submit">거래글 등록</button>
-			<div class="td-msg td-hidden" id="td-form-msg"></div>
+			<div class="td-msg td-hidden" id="td-form-msg" role="status" aria-live="polite"></div>
 		</form>
 		<?php
 	}
@@ -149,24 +154,24 @@ class TD_Frontend_Form {
 		};
 		?>
 		<div class="td-place-picker" data-presets="<?php echo esc_attr( wp_json_encode( TD_Listings::PLACE_PRESETS ) ); ?>" data-current="<?php echo esc_attr( wp_json_encode( $current ) ); ?>">
-			<select class="td-place-city" style="max-width:200px;display:inline-block">
+			<select class="td-place-city" aria-label="도시" style="max-width:200px;display:inline-block">
 				<?php foreach ( TD_Listings::PLACE_PRESETS as $key => $preset ) : ?>
 					<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $preset['label'] ); ?></option>
 				<?php endforeach; ?>
 			</select>
-			<select class="td-place-spot" style="max-width:260px;display:inline-block"></select>
+			<select class="td-place-spot" aria-label="거점" style="max-width:260px;display:inline-block"></select>
 			<input type="hidden" name="<?php echo esc_attr( $name( 'country' ) ); ?>" />
 			<input type="hidden" name="<?php echo esc_attr( $name( 'city' ) ); ?>" />
 			<br/>
-			<input type="text" name="<?php echo esc_attr( $name( 'place_name' ) ); ?>" placeholder="장소명" style="margin-top:6px" />
+			<input type="text" name="<?php echo esc_attr( $name( 'place_name' ) ); ?>" placeholder="장소명" aria-label="장소명" style="margin-top:6px" />
 			<br/>
-			<input type="text" name="<?php echo esc_attr( $name( 'map_url' ) ); ?>" placeholder="구글맵 링크 (https://maps.app.goo.gl/...)" style="margin-top:6px" />
+			<input type="text" name="<?php echo esc_attr( $name( 'map_url' ) ); ?>" placeholder="구글맵 링크 (https://maps.app.goo.gl/...)" aria-label="구글맵 링크" style="margin-top:6px" />
 			<br/>
-			<input type="text" name="<?php echo esc_attr( $name( 'latitude' ) ); ?>" placeholder="위도" style="max-width:150px;display:inline-block;margin-top:6px" required />
-			<input type="text" name="<?php echo esc_attr( $name( 'longitude' ) ); ?>" placeholder="경도" style="max-width:150px;display:inline-block;margin-top:6px" required />
+			<input type="text" name="<?php echo esc_attr( $name( 'latitude' ) ); ?>" placeholder="위도" aria-label="위도 (필수)" style="max-width:150px;display:inline-block;margin-top:6px" required />
+			<input type="text" name="<?php echo esc_attr( $name( 'longitude' ) ); ?>" placeholder="경도" aria-label="경도 (필수)" style="max-width:150px;display:inline-block;margin-top:6px" required />
 			<?php $maps_key = TD_Listings::google_maps_api_key(); ?>
 			<?php if ( $maps_key ) : ?>
-				<div class="td-place-map" data-key="<?php echo esc_attr( $maps_key ); ?>" style="height:320px;max-width:640px;margin-top:8px;border:1px solid #ddd"></div>
+				<div class="td-place-map" role="application" aria-label="위치 선택 지도: 클릭하면 좌표가 입력됩니다. 키보드 사용자는 위도·경도 칸에 직접 입력하세요." data-key="<?php echo esc_attr( $maps_key ); ?>" style="height:320px;max-width:640px;margin-top:8px;border:1px solid #ddd"></div>
 				<p class="description" style="margin-top:4px">지도를 클릭하면 그 위치가 "별도 지정"으로 선택되고 장소명(장소 이름 또는 주소, 뒤에 베트남어 이름)·좌표·구글맵 링크가 채워집니다. 장소명은 고칠 수 있습니다.</p>
 			<?php elseif ( current_user_can( 'manage_options' ) ) : ?>
 				<p class="description" style="margin-top:6px">지도에서 위치를 고르려면 TodayDeal &gt; Status Info에서 Google Maps API 키를 입력하세요.</p>

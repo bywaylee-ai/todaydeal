@@ -134,6 +134,8 @@ class TD_Install {
 		$audit_log      = TD_DB::audit_log();
 		$nonces         = TD_DB::nonces();
 		$ratings        = TD_DB::ratings();
+		$chat_rooms     = TD_DB::chat_rooms();
+		$chat_messages  = TD_DB::chat_messages();
 
 		$sql = array();
 
@@ -239,6 +241,36 @@ class TD_Install {
 			PRIMARY KEY  (id),
 			UNIQUE KEY appointment_rater (appointment_id, rater_user_id),
 			KEY ratee_user_id (ratee_user_id)
+		) {$charset_collate};";
+
+		$sql[] = "CREATE TABLE {$chat_rooms} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			listing_id BIGINT UNSIGNED NOT NULL,
+			listing_type VARCHAR(10) NOT NULL,
+			owner_user_id BIGINT UNSIGNED NOT NULL,
+			counterpart_user_id BIGINT UNSIGNED NOT NULL,
+			last_message_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			owner_last_read_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			counterpart_last_read_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY listing_parties (listing_id, owner_user_id, counterpart_user_id),
+			KEY owner_user_id (owner_user_id),
+			KEY counterpart_user_id (counterpart_user_id)
+		) {$charset_collate};";
+
+		$sql[] = "CREATE TABLE {$chat_messages} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			room_id BIGINT UNSIGNED NOT NULL,
+			sender_user_id BIGINT UNSIGNED NULL,
+			client_message_id VARCHAR(64) NULL,
+			type VARCHAR(16) NOT NULL,
+			content TEXT NOT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY room_client_message (room_id, client_message_id),
+			KEY room_id (room_id)
 		) {$charset_collate};";
 
 		foreach ( $sql as $statement ) {

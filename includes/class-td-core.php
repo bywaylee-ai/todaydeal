@@ -34,6 +34,7 @@ class TD_Core {
 		TD_Admin_Listing_Editor::init();
 		TD_Frontend_Form::init();
 		TD_Frontend_Views::init();
+		TD_Chat_Toolbar::init();
 	}
 
 	public function register_routes() {
@@ -43,6 +44,7 @@ class TD_Core {
 		( new TD_REST_Media_Controller() )->register_routes();
 		( new TD_REST_Listings_Controller() )->register_routes();
 		( new TD_REST_Appointments_Controller() )->register_routes();
+		( new TD_REST_Chat_Controller() )->register_routes();
 		( new TD_REST_Health_Controller() )->register_routes();
 	}
 

@@ -41,6 +41,14 @@ class TD_DB {
 		return self::table( 'ratings' );
 	}
 
+	public static function chat_rooms() {
+		return self::table( 'chat_rooms' );
+	}
+
+	public static function chat_messages() {
+		return self::table( 'chat_messages' );
+	}
+
 	public static function get_schema_version() {
 		return (int) get_option( 'todaydeal_schema_version', 0 );
 	}

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TodayDeal
  * Description: TodayDeal 앱 전용 REST API 플러그인. 거래글(sell/buy), 회원, 인증, 거래 약속을 관리한다.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: TodayDeal
@@ -13,8 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'TODAYDEAL_VERSION', '0.2.0' );
-define( 'TODAYDEAL_SCHEMA_VERSION', 4 );
+define( 'TODAYDEAL_VERSION', '0.3.0' );
+define( 'TODAYDEAL_SCHEMA_VERSION', 5 );
 define( 'TODAYDEAL_PLUGIN_FILE', __FILE__ );
 define( 'TODAYDEAL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TODAYDEAL_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -40,6 +40,8 @@ require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-criteria.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-listings.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-appointments.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-ratings.php';
+require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-chat.php';
+require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-chat-toolbar.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/class-td-cron.php';
 
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/rest/class-td-rest-auth-controller.php';
@@ -48,6 +50,7 @@ require_once TODAYDEAL_PLUGIN_DIR . 'includes/rest/class-td-rest-categories-cont
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/rest/class-td-rest-media-controller.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/rest/class-td-rest-listings-controller.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/rest/class-td-rest-appointments-controller.php';
+require_once TODAYDEAL_PLUGIN_DIR . 'includes/rest/class-td-rest-chat-controller.php';
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/rest/class-td-rest-health-controller.php';
 
 require_once TODAYDEAL_PLUGIN_DIR . 'includes/admin/class-td-admin.php';

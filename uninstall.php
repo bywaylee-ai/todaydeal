@@ -22,6 +22,8 @@ $tables = array(
 	$wpdb->prefix . 'td_appointment_history',
 	$wpdb->prefix . 'td_audit_log',
 	$wpdb->prefix . 'td_server_nonces',
+	$wpdb->prefix . 'td_chat_rooms',
+	$wpdb->prefix . 'td_chat_messages',
 );
 
 foreach ( $tables as $table ) {
