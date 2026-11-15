@@ -49,6 +49,22 @@ class TD_Frontend_Form {
 			.td-form :focus-visible{outline:3px solid #1d4ed8;outline-offset:2px}
 			.td-form input,.td-form select,.td-form textarea{border:1px solid #8c929b;border-radius:4px}
 			.td-form .td-help{display:block;color:#5b616b;font-size:.9em;font-weight:400}
+
+			/* 멀티 상품 등록 */
+			.td-form .td-multi-item{border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:12px;background:#fff}
+			.td-form .td-multi-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+			.td-form .td-multi-order{flex:0 0 26px;height:26px;border-radius:8px;background:#0f766e;color:#fff;font-weight:600;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+			.td-form .td-multi-title{font-weight:600}
+			.td-form .td-multi-ctl{margin-left:auto;display:flex;gap:6px}
+			.td-form .td-multi-ctl button{width:34px;height:34px;padding:0;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:15px;line-height:1}
+			.td-form .td-multi-ctl button:hover{background:#e6f4f1}
+			.td-form .td-multi-ctl .td-remove:hover{background:#fdecea;color:#c2410c}
+			.td-form .td-multi-item .td-row{margin-bottom:10px}
+			.td-form .td-multi-actions{margin-top:4px}
+			.td-form .td-multi-add{padding:10px 18px;border:1px dashed #0f766e;color:#0f766e;background:#fff;border-radius:8px;cursor:pointer;font-weight:600}
+			.td-form .td-multi-add:hover{background:#e6f4f1}
+			.td-form .req{color:#c2410c;font-weight:600}
+			.td-form .td-item-media-badge{margin-top:4px;font-size:.85em;color:#5b616b}
 		</style>
 		<?php
 	}
@@ -63,11 +79,17 @@ class TD_Frontend_Form {
 				<label style="display:inline-block;margin-left:16px"><input type="radio" name="listing_type" value="buy" /> 구해요</label>
 			</fieldset>
 
+			<fieldset class="td-row">
+				<legend>상품 등록 방식 · <span class="td-vi" lang="vi">Hình thức đăng sản phẩm</span></legend>
+				<label style="display:inline-block"><input type="radio" name="registration_mode" value="single" checked /> 단일 상품 <span class="td-vi" lang="vi">Sản phẩm đơn</span></label>
+				<label style="display:inline-block;margin-left:16px"><input type="radio" name="registration_mode" value="multi" /> 멀티 상품 <span class="td-vi" lang="vi">Nhiều sản phẩm</span></label>
+			</fieldset>
+
 			<div class="td-row"><label for="td-f-title">제목 (필수)</label><input type="text" id="td-f-title" name="title" required /></div>
 			<div class="td-row"><label for="td-f-product">상품 고유명</label><input type="text" id="td-f-product" name="product_name" placeholder="예: iPhone 15 Pro 256GB" /></div>
 			<div class="td-row"><label for="td-f-desc">설명</label><textarea id="td-f-desc" name="description" rows="4"></textarea></div>
 
-			<div class="td-row">
+			<div class="td-row td-single-prod">
 				<label for="td-f-price">가격 (필수) <span class="td-only-buy td-hidden">— 최소 ~ 최대</span><span class="td-help" id="td-f-price-help">최대 2,000,000,000</span></label>
 				<input type="text" inputmode="numeric" class="td-price-input" maxlength="13" id="td-f-price" name="price_min" aria-describedby="td-f-price-help" required />
 				<input type="text" inputmode="numeric" class="td-price-input td-only-buy td-hidden" maxlength="13" name="price_max" placeholder="최대 가격" aria-label="최대 가격" />
@@ -81,7 +103,7 @@ class TD_Frontend_Form {
 				</select>
 			</div>
 
-			<div class="td-row td-only-sell"><label for="td-f-cond">물품 상태</label><input type="text" id="td-f-cond" name="condition" /></div>
+			<div class="td-row td-single-prod"><label for="td-f-cond">물품 상태</label><input type="text" id="td-f-cond" name="condition" /></div>
 			<div class="td-row td-only-buy td-hidden"><label for="td-f-condpref">희망 상태</label><input type="text" id="td-f-condpref" name="condition_preference" /></div>
 			<div class="td-row td-only-buy td-hidden"><label for="td-f-qty">수량</label><input type="number" id="td-f-qty" name="quantity" value="1" min="1" /></div>
 
@@ -132,9 +154,15 @@ class TD_Frontend_Form {
 				<?php endforeach; ?>
 			</fieldset>
 
-			<div class="td-row">
+			<div class="td-row td-single-prod">
 				<label for="td-media-input">이미지 <span class="td-help" id="td-media-help">팔아요 1~5장, 구해요 0~3장 (JPEG·PNG·WebP)</span></label>
 				<input type="file" name="media" id="td-media-input" aria-describedby="td-media-help" accept="image/jpeg,image/png,image/webp" multiple />
+			</div>
+
+			<div class="td-row td-multi-prod td-hidden" role="group" aria-label="멀티 상품 목록">
+				<label>상품 목록 · <span class="td-vi" lang="vi">Danh sách sản phẩm</span> <span class="td-help" id="td-multi-help">상품을 순서대로 등록하세요. 각 상품에 상품명·스펙·상품구성·상태·희망가격(VND)·상품사진을 입력하고, ↑↓ 버튼으로 표시 순서를 바꿉니다.</span></label>
+				<div id="td-multi-items"></div>
+				<div class="td-multi-actions"><button type="button" class="td-multi-add" id="td-multi-add">＋ 상품 추가 · Thêm sản phẩm</button></div>
 			</div>
 
 			<button type="submit">거래글 등록</button>
@@ -350,6 +378,81 @@ class TD_Frontend_Form {
 			form.querySelectorAll('input[name=listing_type]').forEach(function(r){ r.addEventListener('change', applyTypeVisibility); });
 			applyTypeVisibility();
 
+			// ── 멀티 상품 등록: 단일/멀티 토글, 상품 세트 추가·삭제·순서 변경 ──
+			var itemsWrap = document.getElementById('td-multi-items');
+			var multiWrap = form.querySelector('.td-multi-prod');
+			var singleProd = form.querySelectorAll('.td-single-prod');
+			var MAX_PRICE = 2000000000;
+
+			function itemHTML(i){
+				return '<div class="td-multi-item" data-index="' + i + '">'
+					+ '<div class="td-multi-head">'
+					+ '<span class="td-multi-order">' + (i + 1) + '</span>'
+					+ '<strong class="td-multi-title">상품 ' + (i + 1) + '</strong>'
+					+ '<div class="td-multi-ctl">'
+					+ '<button type="button" class="td-move-up" aria-label="위로 이동 \u2191">↑</button>'
+					+ '<button type="button" class="td-move-down" aria-label="아래로 이동 \u2193">↓</button>'
+					+ '<button type="button" class="td-remove" aria-label="상품 삭제 \u00d7">×</button>'
+					+ '</div></div>'
+					+ '<div class="td-row"><label>상품명 <span class="req">*</span> \u00b7 T\u00ean s\u1ea3n ph\u1ea9m</label><input type="text" name="item_name" /></div>'
+					+ '<div class="td-row"><label>스펙 \u00b7 Th\u00f4ng s\u1ed1</label><input type="text" name="item_spec" /></div>'
+					+ '<div class="td-row"><label>상품구성 \u00b7 Th\u00e0nh ph\u1ea7n</label><input type="text" name="item_composition" /></div>'
+					+ '<div class="td-row"><label>상태 \u00b7 T\u00ecnh tr\u1ea1ng</label><input type="text" name="item_condition" /></div>'
+					+ '<div class="td-row"><label>희망가격 (VND) <span class="req">*</span></label><input type="text" inputmode="numeric" class="td-price-input" maxlength="13" name="item_price" placeholder="0" aria-label="희망가격 VND" /></div>'
+					+ '<div class="td-row"><label>상품사진 (1~5\uc7a5) <span class="req">*</span> · \u1ea2nh s\u1ea3n ph\u1ea9m</label><input type="file" class="td-item-media" accept="image/jpeg,image/png,image/webp" multiple /><span class="td-item-media-badge"></span></div>'
+					+ '</div>';
+			}
+
+			function formatPrice(el){
+				var digits = el.value.replace(/[^\d]/g, '');
+				if (digits === '') { el.value = ''; return; }
+				el.value = Math.min(parseInt(digits, 10), MAX_PRICE).toLocaleString('en-US');
+			}
+
+			function renumber(){
+				Array.prototype.forEach.call(itemsWrap.children, function(el, i){
+					el.querySelector('.td-multi-order').textContent = i + 1;
+					el.querySelector('.td-multi-title').textContent = '상품 ' + (i + 1);
+				});
+			}
+
+			function addItem(){
+				itemsWrap.insertAdjacentHTML('beforeend', itemHTML(itemsWrap.children.length));
+				var el = itemsWrap.lastElementChild;
+				el.querySelector('.td-price-input').addEventListener('input', function(){ formatPrice(el.querySelector('.td-price-input')); });
+				el.querySelector('.td-item-media').addEventListener('change', function(){
+					el.querySelector('.td-item-media-badge').textContent = el.querySelector('.td-item-media').files.length
+						? '선택한 사진 ' + el.querySelector('.td-item-media').files.length + '장' : '';
+				});
+				renumber();
+			}
+
+			itemsWrap.addEventListener('click', function(e){
+				var btn = e.target.closest('button');
+				if (!btn) return;
+				var item = btn.closest('.td-multi-item');
+				if (!item) return;
+				if (btn.classList.contains('td-move-up') && item.previousElementSibling) {
+					itemsWrap.insertBefore(item, item.previousElementSibling);
+				} else if (btn.classList.contains('td-move-down') && item.nextElementSibling) {
+					itemsWrap.insertBefore(item.nextElementSibling, item);
+				} else if (btn.classList.contains('td-remove')) {
+					item.remove();
+					if (!itemsWrap.children.length) { addItem(); }
+				}
+				renumber();
+			});
+			form.querySelector('#td-multi-add').addEventListener('click', addItem);
+
+			function applyMode(){
+				var multi = form.querySelector('input[name=registration_mode]:checked').value === 'multi';
+				singleProd.forEach(function(el){ el.classList.toggle('td-hidden', multi); });
+				multiWrap.classList.toggle('td-hidden', !multi);
+				if (multi && !itemsWrap.children.length) { addItem(); }
+			}
+			form.querySelectorAll('input[name=registration_mode]').forEach(function(r){ r.addEventListener('change', applyMode); });
+			applyMode();
+
 			// 만료 일시 프리셋(1/2/4주). 기본값은 1주. 시각은 선택한 도시의 표준시 기준.
 			var placePicker = form.querySelector('.td-place-picker');
 			function setExpiresWeeks(weeks){
@@ -408,7 +511,34 @@ class TD_Frontend_Form {
 				try {
 					var fd = new FormData(form);
 					var type = fd.get('listing_type');
-					var mediaIds = await uploadMedia(document.getElementById('td-media-input').files);
+					var stripC = function(v){ return v ? v.replace(/,/g, '') : v; };
+					var isMulti = form.querySelector('input[name=registration_mode]:checked').value === 'multi';
+					var mediaIds = [], items = null;
+					if (isMulti) {
+						var itemEls = document.getElementById('td-multi-items').querySelectorAll('.td-multi-item');
+						if (!itemEls.length) { throw new Error('멀티 상품을 1개 이상 입력해주세요.'); }
+						items = [];
+						for (var i = 0; i < itemEls.length; i++) {
+							var it = itemEls[i];
+							var iname = it.querySelector('[name=item_name]').value.trim();
+							if (!iname) { throw new Error('상품 ' + (i + 1) + '의 상품명을 입력해주세요.'); }
+							var iprice = stripC(it.querySelector('[name=item_price]').value);
+							if (!iprice) { throw new Error('상품 ' + (i + 1) + '의 희망가격을 입력해주세요.'); }
+							var imedia = await uploadMedia(it.querySelector('.td-item-media').files);
+							if (!imedia.length) { throw new Error('상품 ' + (i + 1) + '의 상품사진을 1장 이상 선택해주세요.'); }
+							items.push({
+								name: iname,
+								spec: it.querySelector('[name=item_spec]').value,
+								composition: it.querySelector('[name=item_composition]').value,
+								condition: it.querySelector('[name=item_condition]').value,
+								price: iprice,
+								currency: 'VND',
+								media_ids: imedia
+							});
+						}
+					} else {
+						mediaIds = await uploadMedia(document.getElementById('td-media-input').files);
+					}
 
 					var extraFields = {};
 					form.querySelectorAll('[name^="extra_fields["]').forEach(function(el){
@@ -423,15 +553,16 @@ class TD_Frontend_Form {
 						listing_type: type,
 						title: fd.get('title'),
 						description: fd.get('description'),
-						price_min: stripCommas(fd.get('price_min')) || undefined,
-						currency: fd.get('currency') || undefined,
-						product_name: fd.get('product_name') || undefined,
-						condition: type === 'sell' ? (fd.get('condition') || undefined) : undefined,
+						price_min: isMulti ? undefined : (stripCommas(fd.get('price_min')) || undefined),
+						currency: isMulti ? 'VND' : (fd.get('currency') || undefined),
+						product_name: isMulti ? undefined : (fd.get('product_name') || undefined),
+						condition: type === 'sell' && !isMulti ? (fd.get('condition') || undefined) : undefined,
 						condition_preference: type === 'buy' ? (fd.get('condition_preference') || undefined) : undefined,
 						quantity: type === 'buy' ? Number(fd.get('quantity') || 1) : undefined,
 						expires_at: type === 'buy' ? (fd.get('expires_at') ? tdZoned.toIso(fd.get('expires_at'), placePicker.tdTimezone()) : undefined) : undefined,
 						category_ids: fd.getAll('category_ids[]').map(Number),
-						media_ids: mediaIds,
+						media_ids: isMulti ? undefined : mediaIds,
+						multi_items: items,
 						extra_fields: extraFields,
 						location: {
 							country: fd.get('country'),
@@ -457,6 +588,8 @@ class TD_Frontend_Form {
 					showMsg('등록되었습니다 (listing_id: ' + json.data.listing_id + ')', false);
 					form.reset();
 					setExpiresWeeks(1);
+					itemsWrap.innerHTML = '';
+					applyMode();
 				} catch (err) {
 					showMsg(err.message, true);
 				}

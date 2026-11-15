@@ -120,7 +120,15 @@ while ( have_posts() ) :
 							<?php if ( $flag ) : ?><span class="td-tag"><?php echo esc_html( $flag ); ?></span><?php endif; ?>
 							<?php if ( $listing['price_negotiable'] ) : ?><span class="td-tag">가격 협의 · <span lang="vi">Có thương lượng</span></span><?php endif; ?>
 						</div>
-						<div class="td-big-price"><?php echo TD_Frontend_Views::price_html( $listing ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+						<div class="td-big-price"><?php if ( ! empty( $listing['items'] ) ) {
+	$_prices = array_map( 'intval', array_values( array_filter( array_column( $listing['items'], 'price' ), 'strlen' ) ) );
+	$_min = $_prices ? min( $_prices ) : 0;
+	$_max = $_prices ? max( $_prices ) : 0;
+	$_cur = $listing['items'][0]['currency'] ?: 'VND';
+	echo esc_html( number_format( $_min ) . ( $_max !== $_min ? ' ~ ' . number_format( $_max ) : '' ) . ' ' . $_cur );
+} else {
+	echo TD_Frontend_Views::price_html( $listing ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+} ?></div>
 						<ul class="td-facts">
 							<li><span class="ico" aria-hidden="true">📍</span><span class="td-sr-only">위치: </span><span><?php echo esc_html( TD_Frontend_Views::location_text( $listing ) ); ?></span></li>
 							<li><span class="ico" aria-hidden="true">🕒</span><span><?php echo TD_Frontend_Views::time_ago( $listing['created_at'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 등록</span></li>
@@ -186,6 +194,46 @@ while ( have_posts() ) :
 						<h2><?php echo TD_Frontend_Views::label( '상세 설명', 'Mô tả chi tiết' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></h2>
 						<div class="td-desc"><?php echo wp_kses_post( wpautop( $listing['description'] ) ); ?></div>
 					</div>
+
+					<?php if ( ! empty( $listing['items'] ) ) : ?>
+						<div class="td-box">
+							<h2><?php echo TD_Frontend_Views::label( '상품 목록', 'Danh sách sản phẩm' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></h2>
+							<ol class="td-items-list">
+							<?php foreach ( $listing['items'] as $_i => $item ) : ?>
+								<li class="td-itemrow">
+									<div class="td-itemrow-head">
+										<span class="td-itemrow-no"><?php echo esc_html( $_i + 1 ); ?></span>
+										<strong><?php echo esc_html( $item['name'] ); ?></strong>
+										<span class="td-itemrow-price"><?php echo esc_html( number_format( (float) $item['price'] ) . ' ' . $item['currency'] ); ?></span>
+									</div>
+									<?php $_item_media = array_filter( $item['media_ids'] ); ?>
+									<?php if ( $_item_media ) : ?>
+										<div class="td-itemrow-media">
+											<?php foreach ( $_item_media as $_mid ) : ?>
+												<?php $_src = wp_get_attachment_image_url( $_mid, 'large' ) ?: ''; ?>
+												<?php if ( $_src ) : ?>
+													<a href="<?php echo esc_url( $_src ); ?>" target="_blank" rel="noopener"><img src="<?php echo esc_url( wp_get_attachment_image_url( $_mid, 'thumbnail' ) ?: '' ); ?>" alt="" loading="lazy" /></a>
+												<?php endif; ?>
+											<?php endforeach; ?>
+										</div>
+									<?php endif; ?>
+									<?php $_item_specs = array_values( array_filter( array(
+										$item['spec'] ? array( '스펙', 'Thông số', $item['spec'] ) : null,
+										$item['composition'] ? array( '상품구성', 'Thành phần', $item['composition'] ) : null,
+										$item['condition'] ? array( '상태', 'Tình trạng', $item['condition'] ) : null,
+									) ) ); ?>
+									<?php if ( $_item_specs ) : ?>
+										<div class="td-specs">
+											<?php foreach ( $_item_specs as $_s ) : ?>
+												<div class="td-spec"><span><?php echo TD_Frontend_Views::label( $_s[0], $_s[1] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><strong><?php echo esc_html( $_s[2] ); ?></strong></div>
+											<?php endforeach; ?>
+										</div>
+									<?php endif; ?>
+								</li>
+							<?php endforeach; ?>
+							</ol>
+						</div>
+					<?php endif; ?>
 
 					<?php if ( $specs ) : ?>
 						<div class="td-box">

@@ -200,3 +200,15 @@ html.td-chat-lock{overflow:hidden}
 .td-chat-form textarea::placeholder{color:var(--td-muted);opacity:1}
 .td-chat-form .td-btn{flex:0 0 auto;height:auto;min-height:44px}
 .td-chat-form .td-btn:disabled,.td-chat-form textarea:disabled{opacity:.6;cursor:not-allowed}
+
+/* 멀티 상품 목록 (상세) */
+.td-items-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.td-itemrow{border:1px solid var(--td-line);border-radius:var(--td-radius);padding:14px;background:#fff}
+.td-itemrow-head{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.td-itemrow-no{flex:0 0 auto;min-width:24px;height:24px;padding:0 6px;border-radius:6px;background:var(--td-accent);color:#fff;font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.td-itemrow-head strong{flex:1;font-size:15px}
+.td-itemrow-price{flex:0 0 auto;color:var(--td-price);font-weight:700}
+.td-itemrow-media{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.td-itemrow-media img{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--td-line)}
+.td-itemrow-media a:hover img{border-color:var(--td-accent)}
+.td-itemrow .td-specs{margin-top:8px}

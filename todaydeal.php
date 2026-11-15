@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TodayDeal
  * Description: TodayDeal 앱 전용 REST API 플러그인. 거래글(sell/buy), 회원, 인증, 거래 약속을 관리한다.
- * Version: 0.3.0
+ * Version: 0.4.0
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: TodayDeal

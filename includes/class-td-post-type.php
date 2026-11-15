@@ -39,6 +39,8 @@ class TD_Post_Type {
 	const META_ON_EXPIRE_ACTION = '_todaydeal_on_expire_action';
 	const META_SOURCE_LANGUAGE = '_todaydeal_source_language';
 	const META_TRANSLATIONS   = '_todaydeal_translations';
+	// 멀티 상품 등록: 한 거래글 안의 순서 있는 상품 목록(각 항목: name/spec/composition/condition/price/currency/media_ids).
+	const META_ITEMS          = '_todaydeal_items';
 
 	public static function register() {
 		register_post_type(

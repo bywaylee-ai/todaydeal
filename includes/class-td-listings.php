@@ -145,6 +145,24 @@ class TD_Listings {
 			return $limit_check;
 		}
 
+		// 멀티 상품 등록: `multi_items`가 있으면 한 거래글에 상품 목록을 저장한다.
+		// 각 항목(상품명·스펙·구성·상태·희망가격·상품사진)을 검증하고, 대표(첫 번째)
+		// 상품을 최상위 필드(상품명·가격·대표사진 갤러리)에 반영해 기존 뷰가 그대로 동작한다.
+		$is_multi = ! empty( $input['multi_items'] ) && is_array( $input['multi_items'] );
+		$items    = array();
+		if ( $is_multi ) {
+			$items = self::validate_items( $input['multi_items'] );
+			if ( is_wp_error( $items ) ) {
+				return $items;
+			}
+			$input['product_name'] = $items[0]['name'];
+			$input['price_min']    = $items[0]['price'];
+			$input['price_max']    = '';
+			if ( empty( $input['media_ids'] ) ) {
+				$input['media_ids'] = $items[0]['media_ids'];
+			}
+		}
+
 		$validated = self::validate_type_fields( $listing_type, $input );
 		if ( is_wp_error( $validated ) ) {
 			return $validated;
@@ -157,6 +175,18 @@ class TD_Listings {
 		$media_ids = array_map( 'intval', (array) ( $input['media_ids'] ?? array() ) );
 		if ( ! empty( $media_ids ) ) {
 			$owned = TD_Media::validate_ownership( $media_ids, $user_id );
+			if ( is_wp_error( $owned ) ) {
+				return $owned;
+			}
+		}
+
+		// 멀티 모드: 대표 상품 이외 항목들의 사진 소유권도 함께 검증한다.
+		if ( $is_multi ) {
+			$all_item_media = array();
+			foreach ( $items as $it ) {
+				$all_item_media = array_merge( $all_item_media, $it['media_ids'] );
+			}
+			$owned = TD_Media::validate_ownership( array_map( 'intval', $all_item_media ), $user_id );
 			if ( is_wp_error( $owned ) ) {
 				return $owned;
 			}
@@ -210,6 +240,13 @@ class TD_Listings {
 			TD_Media::attach_to_listing( $media_ids, $post_id );
 		}
 
+		if ( $is_multi ) {
+			update_post_meta( $post_id, TD_Post_Type::META_ITEMS, wp_json_encode( $items, JSON_UNESCAPED_UNICODE ) );
+			foreach ( $items as $it ) {
+				TD_Media::attach_to_listing( $it['media_ids'], $post_id );
+			}
+		}
+
 		TD_Category_Fields::save_values_for_listing( $post_id, $extra_values );
 
 		TD_Audit_Log::record( 'listing_create', 'listing', $post_id, 'success', array( 'listing_type' => $listing_type ) );
@@ -242,6 +279,56 @@ class TD_Listings {
 		}
 
 		return array( $title, $description, $translations, $source_language );
+	}
+
+	/**
+	 * 멀티 상품 등록의 각 상품 항목을 검증·정제한다. 반환: 정제된 항목 배열,
+	 * 실패 시 TD_Response::error(WP_Error). 각 항목: 상품명(필수)·스펙·상품구성·
+	 * 상태·희망가격(필수, VND, MAX_PRICE 이하)·상품사진(1~5장 필수).
+	 */
+	private static function validate_items( $multi_items ) {
+		if ( ! is_array( $multi_items ) || empty( $multi_items ) ) {
+			return TD_Response::error( 'VALIDATION_ERROR', '멀티 상품을 1개 이상 입력해주세요.', array( 'field' => 'multi_items' ) );
+		}
+
+		$items = array();
+		foreach ( array_values( $multi_items ) as $idx => $item ) {
+			$item = is_array( $item ) ? $item : array();
+
+			$name = sanitize_text_field( $item['name'] ?? '' );
+			if ( '' === $name ) {
+				return TD_Response::error( 'VALIDATION_ERROR', sprintf( '상품 %d의 상품명을 입력해주세요.', $idx + 1 ), array( 'field' => "multi_items.{$idx}.name" ) );
+			}
+
+			$price = self::sanitize_price( $item['price'] ?? '' );
+			if ( null === $price || '' === $price ) {
+				return TD_Response::error( 'VALIDATION_ERROR', sprintf( '상품 %d의 희망가격(%s)을 숫자로 입력해주세요.', $idx + 1, number_format( self::MAX_PRICE ) ), array( 'field' => "multi_items.{$idx}.price" ) );
+			}
+
+			$media = array_unique( array_map( 'intval', (array) ( $item['media_ids'] ?? array() ) ) );
+			if ( count( $media ) < 1 ) {
+				return TD_Response::error( 'VALIDATION_ERROR', sprintf( '상품 %d의 상품사진을 1장 이상 등록해주세요.', $idx + 1 ), array( 'field' => "multi_items.{$idx}.media_ids" ) );
+			}
+			if ( count( $media ) > 5 ) {
+				return TD_Response::error( 'VALIDATION_ERROR', sprintf( '상품 %d의 상품사진은 최대 5장까지 등록할 수 있습니다.', $idx + 1 ), array( 'field' => "multi_items.{$idx}.media_ids" ) );
+			}
+
+			$currency = ! empty( $item['currency'] ) && in_array( strtoupper( (string) $item['currency'] ), self::CURRENCIES, true )
+				? strtoupper( (string) $item['currency'] )
+				: self::DEFAULT_CURRENCY;
+
+			$items[] = array(
+				'name'        => $name,
+				'spec'        => sanitize_text_field( $item['spec'] ?? '' ),
+				'composition' => sanitize_text_field( $item['composition'] ?? '' ),
+				'condition'   => sanitize_text_field( $item['condition'] ?? '' ),
+				'price'       => $price,
+				'currency'    => $currency,
+				'media_ids'   => $media,
+			);
+		}
+
+		return $items;
 	}
 
 	/**
@@ -478,6 +565,21 @@ class TD_Listings {
 		$media_ids    = json_decode( get_post_meta( $post_id, TD_Post_Type::META_MEDIA_IDS, true ) ?: '[]', true );
 		$categories   = TD_Taxonomy_Adapter::get_listing_terms( $post_id );
 
+		// 멀티 상품 목록(있을 경우)을 응답에 포함. 순서는 저장 순서 그대로 유지한다.
+		$items = array();
+		foreach ( (array) json_decode( get_post_meta( $post_id, TD_Post_Type::META_ITEMS, true ) ?: '[]', true ) as $it ) {
+			$items[] = array(
+				'name'        => (string) ( $it['name'] ?? '' ),
+				'spec'        => (string) ( $it['spec'] ?? '' ),
+				'composition' => (string) ( $it['composition'] ?? '' ),
+				'condition'   => (string) ( $it['condition'] ?? '' ),
+				'price'       => (string) ( $it['price'] ?? '' ),
+				'currency'    => (string) ( $it['currency'] ?? self::DEFAULT_CURRENCY ),
+				'media_ids'   => array_map( 'intval', (array) ( $it['media_ids'] ?? array() ) ),
+			);
+		}
+		$is_multi = ! empty( $items );
+
 		$response = array(
 			'listing_id'          => $post_id,
 			'listing_type'        => $listing_type,
@@ -517,6 +619,8 @@ class TD_Listings {
 			'updated_at'          => self::to_iso8601( $post->post_modified_gmt ),
 			'source_language'     => get_post_meta( $post_id, TD_Post_Type::META_SOURCE_LANGUAGE, true ),
 			'extra_fields'        => TD_Category_Fields::get_values_for_listing( $post_id ),
+			'items'               => $items,
+			'is_multi'            => $is_multi,
 		);
 
 		// WP-LST-017: counterpart activity is owner/admin-only.
